@@ -10,7 +10,7 @@ import sys
 import os
 import time
 
-# Add RQB2-bin to path for imports
+# Add RQB2-bin to path for imports BEFORE importing rq_led_utils
 sys.path.insert(0, '/usr/bin')
 
 
