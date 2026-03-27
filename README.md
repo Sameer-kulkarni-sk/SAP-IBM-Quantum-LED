@@ -36,6 +36,8 @@ A quantum-powered LED demonstration for RasQberry that displays "SAP" text on a 
 
 ## Installation
 
+> **⚠️ IMPORTANT**: See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for safe deployment that won't affect other RasQberry demos or system files.
+
 ### 1. Clone Repository
 
 ```bash
