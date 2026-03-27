@@ -20,41 +20,41 @@ jobs:
         echo "Checking required files..."
         
         # Core files
-        test -f README.md || { echo "❌ README.md missing"; exit 1; }
-        test -f LICENSE || { echo "❌ LICENSE missing"; exit 1; }
-        test -f CONTRIBUTING.md || { echo "❌ CONTRIBUTING.md missing"; exit 1; }
-        test -f .gitignore || { echo "❌ .gitignore missing"; exit 1; }
+        test -f README.md || { echo " README.md missing"; exit 1; }
+        test -f LICENSE || { echo " LICENSE missing"; exit 1; }
+        test -f CONTRIBUTING.md || { echo " CONTRIBUTING.md missing"; exit 1; }
+        test -f .gitignore || { echo " .gitignore missing"; exit 1; }
         
         # Source files
-        test -f src/sap_led_demo.py || { echo "❌ src/sap_led_demo.py missing"; exit 1; }
-        test -f src/sap_quantum_led_demo.py || { echo "❌ src/sap_quantum_led_demo.py missing"; exit 1; }
-        test -f src/neopixel_spi_SAPtestFunc.py || { echo "❌ src/neopixel_spi_SAPtestFunc.py missing"; exit 1; }
+        test -f src/sap_led_demo.py || { echo " src/sap_led_demo.py missing"; exit 1; }
+        test -f src/sap_quantum_led_demo.py || { echo " src/sap_quantum_led_demo.py missing"; exit 1; }
+        test -f src/neopixel_spi_SAPtestFunc.py || { echo " src/neopixel_spi_SAPtestFunc.py missing"; exit 1; }
         
         # Scripts
-        test -f scripts/rq_led_sap_demo.sh || { echo "❌ scripts/rq_led_sap_demo.sh missing"; exit 1; }
+        test -f scripts/rq_led_sap_demo.sh || { echo " scripts/rq_led_sap_demo.sh missing"; exit 1; }
         
         # Patches
-        test -f patches/patch_virtual_gui.py || { echo "❌ patches/patch_virtual_gui.py missing"; exit 1; }
-        test -f patches/patch_virtual_gui_yflip.py || { echo "❌ patches/patch_virtual_gui_yflip.py missing"; exit 1; }
+        test -f patches/patch_virtual_gui.py || { echo " patches/patch_virtual_gui.py missing"; exit 1; }
+        test -f patches/patch_virtual_gui_yflip.py || { echo " patches/patch_virtual_gui_yflip.py missing"; exit 1; }
         
         # Documentation
-        test -f docs/DEPLOYMENT_GUIDE.md || { echo "❌ docs/DEPLOYMENT_GUIDE.md missing"; exit 1; }
-        test -f docs/ARCHITECTURE.md || { echo "❌ docs/ARCHITECTURE.md missing"; exit 1; }
-        test -f docs/TROUBLESHOOTING.md || { echo "❌ docs/TROUBLESHOOTING.md missing"; exit 1; }
+        test -f docs/DEPLOYMENT_GUIDE.md || { echo " docs/DEPLOYMENT_GUIDE.md missing"; exit 1; }
+        test -f docs/ARCHITECTURE.md || { echo " docs/ARCHITECTURE.md missing"; exit 1; }
+        test -f docs/TROUBLESHOOTING.md || { echo " docs/TROUBLESHOOTING.md missing"; exit 1; }
         
-        echo "✅ All required files present"
+        echo " All required files present"
     
     - name: Check for forbidden files
       run: |
         echo "Checking for old/duplicate files..."
         
         # Should not exist (cleaned up)
-        ! test -f sap_led_demo_enhanced.py || { echo "❌ Old file found: sap_led_demo_enhanced.py"; exit 1; }
-        ! test -f sap_led_demo_fixed.py || { echo "❌ Old file found: sap_led_demo_fixed.py"; exit 1; }
-        ! test -f sap_led_demo_final.py || { echo "❌ Old file found: sap_led_demo_final.py"; exit 1; }
-        ! test -f run_led_sap_demo_fixed.sh || { echo "❌ Old file found: run_led_sap_demo_fixed.sh"; exit 1; }
+        ! test -f sap_led_demo_enhanced.py || { echo " Old file found: sap_led_demo_enhanced.py"; exit 1; }
+        ! test -f sap_led_demo_fixed.py || { echo "Old file found: sap_led_demo_fixed.py"; exit 1; }
+        ! test -f sap_led_demo_final.py || { echo "Old file found: sap_led_demo_final.py"; exit 1; }
+        ! test -f run_led_sap_demo_fixed.sh || { echo " Old file found: run_led_sap_demo_fixed.sh"; exit 1; }
         
-        echo "✅ No old/duplicate files found"
+        echo " No old/duplicate files found"
 
   validate-python:
     runs-on: ubuntu-latest
@@ -77,7 +77,7 @@ jobs:
         python -m py_compile src/neopixel_spi_SAPtestFunc.py
         python -m py_compile patches/patch_virtual_gui.py
         python -m py_compile patches/patch_virtual_gui_yflip.py
-        echo "✅ All Python files have valid syntax"
+        echo "All Python files have valid syntax"
     
     - name: Check for common issues
       run: |
@@ -85,16 +85,16 @@ jobs:
         
         # Check for hardcoded IPs (should use YOUR_IP placeholder)
         if grep -r "100\.67\.33\." src/ scripts/ patches/ 2>/dev/null; then
-          echo "❌ Hardcoded IP address found"
+          echo " Hardcoded IP address found"
           exit 1
         fi
         
         # Check for absolute paths (should be relative)
         if grep -r "/home/rasqberry" src/*.py 2>/dev/null | grep -v "# " | grep -v "\"\"\""; then
-          echo "⚠️ Warning: Absolute paths found in source code"
+          echo "Warning: Absolute paths found in source code"
         fi
         
-        echo "✅ No critical issues found"
+        echo " No critical issues found"
 
   validate-scripts:
     runs-on: ubuntu-latest
@@ -108,13 +108,13 @@ jobs:
       run: |
         echo "Checking shell script syntax..."
         bash -n scripts/rq_led_sap_demo.sh
-        echo "✅ Shell scripts have valid syntax"
+        echo "Shell scripts have valid syntax"
     
     - name: Check script permissions
       run: |
         echo "Checking script permissions..."
-        test -x scripts/rq_led_sap_demo.sh || { echo "❌ Script not executable"; exit 1; }
-        echo "✅ Scripts have correct permissions"
+        test -x scripts/rq_led_sap_demo.sh || { echo " Script not executable"; exit 1; }
+        echo " Scripts have correct permissions"
 
   validate-docs:
     runs-on: ubuntu-latest
@@ -130,22 +130,22 @@ jobs:
         
         # Check if referenced files exist
         grep -o '\[.*\](docs/.*\.md)' README.md | sed 's/.*(\(.*\))/\1/' | while read file; do
-          test -f "$file" || { echo "❌ Broken link: $file"; exit 1; }
+          test -f "$file" || { echo " Broken link: $file"; exit 1; }
         done
         
-        echo "✅ All documentation links valid"
+        echo " All documentation links valid"
     
     - name: Check documentation completeness
       run: |
         echo "Checking documentation completeness..."
         
         # README should mention deployment guide
-        grep -q "DEPLOYMENT_GUIDE" README.md || { echo "❌ README missing deployment guide reference"; exit 1; }
+        grep -q "DEPLOYMENT_GUIDE" README.md || { echo " README missing deployment guide reference"; exit 1; }
         
         # Deployment guide should have safety section
-        grep -q "Safety Guarantees" docs/DEPLOYMENT_GUIDE.md || { echo "❌ Deployment guide missing safety section"; exit 1; }
+        grep -q "Safety Guarantees" docs/DEPLOYMENT_GUIDE.md || { echo " Deployment guide missing safety section"; exit 1; }
         
-        echo "✅ Documentation is complete"
+        echo " Documentation is complete"
 
   validate-safety:
     runs-on: ubuntu-latest
@@ -160,27 +160,27 @@ jobs:
         echo "Checking deployment safety measures..."
         
         # Deployment guide should mention backups
-        grep -q "backup" docs/DEPLOYMENT_GUIDE.md || { echo "❌ No backup instructions"; exit 1; }
+        grep -q "backup" docs/DEPLOYMENT_GUIDE.md || { echo " No backup instructions"; exit 1; }
         
         # Deployment guide should mention rollback
-        grep -q "rollback\|Rollback" docs/DEPLOYMENT_GUIDE.md || { echo "❌ No rollback instructions"; exit 1; }
+        grep -q "rollback\|Rollback" docs/DEPLOYMENT_GUIDE.md || { echo " No rollback instructions"; exit 1; }
         
         # Should not modify core RasQberry files
-        ! grep -q "/usr/config/rasqberry_environment.env" src/*.py || { echo "❌ Source code modifies config"; exit 1; }
+        ! grep -q "/usr/config/rasqberry_environment.env" src/*.py || { echo "Source code modifies config"; exit 1; }
         
-        echo "✅ Safety measures in place"
+        echo "Safety measures in place"
     
     - name: Check isolation
       run: |
         echo "Checking demo isolation..."
         
         # Main demo should be in user home directory
-        grep -q "/home/rasqberry/led_sap_demo.py" docs/DEPLOYMENT_GUIDE.md || { echo "❌ Demo not in user directory"; exit 1; }
+        grep -q "/home/rasqberry/led_sap_demo.py" docs/DEPLOYMENT_GUIDE.md || { echo " Demo not in user directory"; exit 1; }
         
         # Should not affect other demos
-        grep -q "Other demos.*Not affected" docs/DEPLOYMENT_GUIDE.md || { echo "❌ No isolation guarantee"; exit 1; }
+        grep -q "Other demos.*Not affected" docs/DEPLOYMENT_GUIDE.md || { echo " No isolation guarantee"; exit 1; }
         
-        echo "✅ Demo is properly isolated"
+        echo " Demo is properly isolated"
 
   summary:
     runs-on: ubuntu-latest
@@ -191,14 +191,14 @@ jobs:
     - name: Summary
       run: |
         echo "================================"
-        echo "✅ All validation checks passed!"
+        echo " All validation checks passed!"
         echo "================================"
         echo ""
         echo "Repository is ready for deployment:"
-        echo "  ✅ Structure validated"
-        echo "  ✅ Python code validated"
-        echo "  ✅ Shell scripts validated"
-        echo "  ✅ Documentation validated"
-        echo "  ✅ Safety measures validated"
+        echo "   Structure validated"
+        echo "   Python code validated"
+        echo "   Shell scripts validated"
+        echo "   Documentation validated"
+        echo "   Safety measures validated"
         echo ""
-        echo "Safe to deploy to RasQberry! 🚀"
+        echo "Safe to deploy to RasQberry! "
