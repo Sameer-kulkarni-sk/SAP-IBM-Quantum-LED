@@ -35,14 +35,40 @@ ssh rasqberry@YOUR_IP "/home/rasqberry/RasQberry-Two/venv/RQB2/bin/python3 --ver
 
 ## Safe Deployment Steps
 
-### Step 1: Clone Repository (Local Machine)
+### Quick Deployment (Recommended)
+
+Use the automated deployment script:
+
+```bash
+# Clone repository
+git clone https://github.com/Sameer-kulkarni-sk/SAP-IBM-Quantum-LED.git
+cd SAP-IBM-Quantum-LED
+
+# Deploy everything (including desktop icon)
+./scripts/deploy_to_rasqberry.sh YOUR_IP
+```
+
+This script will:
+- ✅ Test connection
+- ✅ Create backups
+- ✅ Deploy main demo
+- ✅ Install launcher script
+- ✅ Create desktop icon
+- ✅ Deploy quantum version
+- ✅ Verify installation
+
+### Manual Deployment (Step-by-Step)
+
+If you prefer manual control:
+
+#### Step 1: Clone Repository (Local Machine)
 
 ```bash
 git clone https://github.com/Sameer-kulkarni-sk/SAP-IBM-Quantum-LED.git
 cd SAP-IBM-Quantum-LED
 ```
 
-### Step 2: Deploy Main Demo
+#### Step 2: Deploy Main Demo
 
 This **only affects** `/home/rasqberry/led_sap_demo.py` - no other demos are touched.
 
@@ -54,10 +80,10 @@ scp src/sap_led_demo.py rasqberry@YOUR_IP:/home/rasqberry/led_sap_demo.py
 ssh rasqberry@YOUR_IP "chmod +x /home/rasqberry/led_sap_demo.py"
 ```
 
-**Impact**:  Only replaces `/home/rasqberry/led_sap_demo.py`  
-**Other demos**:  Not affected
+**Impact**: ✅ Only replaces `/home/rasqberry/led_sap_demo.py`
+**Other demos**: ✅ Not affected
 
-### Step 3: Deploy Launcher Script (Optional)
+#### Step 3: Deploy Launcher Script
 
 This adds a new launcher script without modifying existing ones.
 
@@ -69,10 +95,26 @@ scp scripts/rq_led_sap_demo.sh rasqberry@YOUR_IP:/tmp/
 ssh rasqberry@YOUR_IP "sudo cp /tmp/rq_led_sap_demo.sh /usr/bin/ && sudo chmod +x /usr/bin/rq_led_sap_demo.sh"
 ```
 
-**Impact**:  Adds new file `/usr/bin/rq_led_sap_demo.sh`  
-**Other scripts**:  Not affected
+**Impact**: ✅ Adds new file `/usr/bin/rq_led_sap_demo.sh`
+**Other scripts**: ✅ Not affected
 
-### Step 4: Apply Virtual Display Patches (Optional)
+#### Step 4: Install Desktop Icon
+
+This creates a desktop shortcut for easy access.
+
+```bash
+# Copy desktop files
+scp desktop/sap-led-demo.desktop rasqberry@YOUR_IP:/tmp/
+scp scripts/install_desktop_icon.sh rasqberry@YOUR_IP:/tmp/
+
+# Install icon
+ssh rasqberry@YOUR_IP "cd /tmp && chmod +x install_desktop_icon.sh && sudo ./install_desktop_icon.sh"
+```
+
+**Impact**: ✅ Adds desktop icon to `/home/rasqberry/Desktop/`
+**Other icons**: ✅ Not affected
+
+#### Step 5: Apply Virtual Display Patches (Optional)
 
  **IMPORTANT**: These patches modify system files. Only apply if you need virtual display synchronization.
 
@@ -90,7 +132,7 @@ ssh rasqberry@YOUR_IP "sudo python3 /tmp/patch_virtual_gui_yflip.py"
 **Backup**:  Automatically created at `/usr/bin/rq_led_virtual_gui.py.backup`  
 **Other demos**: Should work normally (patches improve virtual display for all demos)
 
-### Step 5: Deploy Quantum Version (Optional)
+#### Step 6: Deploy Quantum Version (Optional)
 
 ```bash
 # Copy quantum demo to user home
@@ -108,37 +150,70 @@ ssh rasqberry@YOUR_IP "chmod +x /home/rasqberry/sap_quantum_led_demo.py"
 ## Files Modified by Deployment
 
 ### User Home Directory (`/home/rasqberry/`)
--  `led_sap_demo.py` - **Replaced** (backed up first)
--  `sap_quantum_led_demo.py` - **Added** (optional)
+- ✅ `led_sap_demo.py` - **Replaced** (backed up first)
+- ✅ `sap_quantum_led_demo.py` - **Added** (optional)
+
+### Desktop (`/home/rasqberry/Desktop/`)
+- ✅ `sap-led-demo.desktop` - **Added** (desktop icon)
 
 ### System Binaries (`/usr/bin/`)
--  `rq_led_sap_demo.sh` - **Added** (optional)
--  `rq_led_virtual_gui.py` - **Modified** (only if patches applied, backed up first)
+- ✅ `rq_led_sap_demo.sh` - **Added** (launcher script)
+- ⚠️ `rq_led_virtual_gui.py` - **Modified** (only if patches applied, backed up first)
+
+### Applications Menu (`/usr/share/applications/`)
+- ✅ `sap-led-demo.desktop` - **Added** (menu entry)
 
 ### Configuration Files
-- **No configuration files modified**
-- `/usr/config/rasqberry_environment.env` - **Not touched**
+- ✅ **No configuration files modified**
+- ✅ `/usr/config/rasqberry_environment.env` - **Not touched**
 
 ### Other Demos
--  **IBM Quantum demos** - Not affected
--  **Other LED demos** - Not affected
--  **Quantum games** - Not affected
--  **System utilities** - Not affected
+- ✅ **IBM Quantum demos** - Not affected
+- ✅ **Other LED demos** - Not affected
+- ✅ **Quantum games** - Not affected
+- ✅ **System utilities** - Not affected
 
 ---
 
 ## Verification After Deployment
 
-### 1. Test SAP Demo
+### 1. Check Desktop Icon
 
 ```bash
-# Test the demo
+# Verify desktop icon exists
+ssh rasqberry@YOUR_IP "ls -la /home/rasqberry/Desktop/sap-led-demo.desktop"
+```
+
+**Expected**: Desktop icon file exists and is executable
+
+### 2. Test SAP Demo from Desktop
+
+On the RasQberry device:
+1. Look for "SAP LED Demo" icon on desktop
+2. Double-click the icon
+3. Demo should launch in terminal window
+
+**Expected**: SAP text displays correctly on LEDs
+
+### 3. Test from Command Line
+
+```bash
+# Test the demo via launcher script
+ssh rasqberry@YOUR_IP "sudo /usr/bin/rq_led_sap_demo.sh"
+```
+
+**Expected**: SAP text displays correctly on LEDs
+
+### 4. Test Direct Python Execution
+
+```bash
+# Test direct Python execution
 ssh rasqberry@YOUR_IP "cd /home/rasqberry && sudo PYTHONPATH=/usr/bin /home/rasqberry/RasQberry-Two/venv/RQB2/bin/python3 led_sap_demo.py"
 ```
 
 **Expected**: SAP text displays correctly on LEDs
 
-### 2. Test Other Demos
+### 5. Test Other Demos
 
 ```bash
 # Test IBM demo (should still work)
@@ -149,7 +224,7 @@ ssh rasqberry@YOUR_IP "sudo /usr/bin/rq_led_ibm_demo.sh"
 
 **Expected**: All other demos work normally
 
-### 3. Check Virtual Display
+### 6. Check Virtual Display
 
 ```bash
 # Check if virtual GUI is running

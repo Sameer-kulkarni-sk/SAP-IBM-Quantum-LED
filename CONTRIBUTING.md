@@ -48,9 +48,41 @@ Enhancement suggestions are welcome! Please create an issue with:
    - Test with and without joystick
 
 5. **Commit your changes**
+   
+   Follow our commit message guidelines (see [Commit Template](.github/COMMIT_TEMPLATE.md)):
+   
    ```bash
    git add .
-   git commit -m "Add: Brief description of changes"
+   git commit
+   ```
+   
+   **Good commit message example:**
+   ```
+   refactor: Standardize CI workflow output formatting
+   
+   Replace emoji characters with [ERROR], [SUCCESS], [WARNING]
+   prefixes for better terminal compatibility.
+   
+   Why:
+   - Ensures consistent output across all CI environments
+   - Improves log parsing and grep-ability
+   
+   What:
+   - Updated .github/workflows/validate.yml
+   - Standardized all echo statements
+   
+   Impact:
+   - No functional changes to validation logic
+   ```
+   
+   **Bad commit message example:**
+   ```
+   changes on deployment   Too vague, no context
+   ```
+   
+   **Setup commit template:**
+   ```bash
+   git config commit.template .github/COMMIT_TEMPLATE.md
    ```
 
 6. **Push to your fork**
@@ -97,6 +129,18 @@ Before submitting:
 - Add inline comments for complex code
 - Create/update docs for significant changes
 - Include usage examples
+- Document why changes were made, not just what changed
+- Update DOCUMENTATION_CHANGELOG.md when removing/consolidating docs
+
+### Commit Messages
+
+**Required Format:**
+- Use descriptive commit messages (see [.github/COMMIT_TEMPLATE.md](.github/COMMIT_TEMPLATE.md))
+- Explain the "why" behind changes
+- List affected files/components
+- Mention any breaking changes or impacts
+- Reference related issues
+
 
 ## Project Structure
 

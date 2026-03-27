@@ -36,30 +36,29 @@ A quantum-powered LED demonstration for RasQberry that displays "SAP" text on a 
 
 ## Installation
 
-> **[WARNING] IMPORTANT**: See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for safe deployment that won't affect other RasQberry demos or system files.
+> **⚠️ IMPORTANT**: See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for safe deployment that won't affect other RasQberry demos or system files.
 
-### 1. Clone Repository
+### Quick Installation (Recommended)
 
 ```bash
-git clone https://github.com/yourusername/SAP-IBM-Quantum-LED.git
+# Clone repository
+git clone https://github.com/Sameer-kulkarni-sk/SAP-IBM-Quantum-LED.git
 cd SAP-IBM-Quantum-LED
+
+# Deploy everything with one command (includes desktop icon)
+./scripts/deploy_to_rasqberry.sh YOUR_RASQBERRY_IP
 ```
 
-### 2. Deploy to RasQberry
+This automated script will:
+- ✅ Deploy the demo to RasQberry
+- ✅ Create a desktop icon for easy access
+- ✅ Install launcher script
+- ✅ Deploy quantum version
+- ✅ Verify installation
 
-```bash
-# Copy main demo
-scp src/sap_led_demo.py rasqberry@YOUR_IP:/home/rasqberry/led_sap_demo.py
+### Manual Installation
 
-# Copy launcher script
-scp scripts/rq_led_sap_demo.sh rasqberry@YOUR_IP:/tmp/
-ssh rasqberry@YOUR_IP "sudo cp /tmp/rq_led_sap_demo.sh /usr/bin/ && sudo chmod +x /usr/bin/rq_led_sap_demo.sh"
-
-# Apply virtual display patches (optional)
-scp patches/patch_virtual_gui.py rasqberry@YOUR_IP:/tmp/
-scp patches/patch_virtual_gui_yflip.py rasqberry@YOUR_IP:/tmp/
-ssh rasqberry@YOUR_IP "sudo python3 /tmp/patch_virtual_gui.py && sudo python3 /tmp/patch_virtual_gui_yflip.py"
-```
+See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for step-by-step manual deployment instructions.
 
 ### 3. Configure LED Matrix
 
@@ -75,13 +74,22 @@ LED_VIRTUAL_MIRROR=true
 
 ## Usage
 
-### Method 1: Desktop Icon
+### Method 1: Desktop Icon (Easiest)
 
-Double-click the "SAP LED Demo" icon on the RasQberry desktop.
+After deployment, you'll see a **"SAP LED Demo"** icon on the RasQberry desktop:
+
+1. Double-click the icon
+2. Demo launches in terminal window
+3. Use joystick to control colors
+4. Press Ctrl+C to exit
 
 ### Method 2: Command Line
 
 ```bash
+# SSH into RasQberry
+ssh rasqberry@YOUR_IP
+
+# Run the demo
 sudo /usr/bin/rq_led_sap_demo.sh
 ```
 
@@ -119,22 +127,27 @@ sudo PYTHONPATH=/usr/bin /home/rasqberry/RasQberry-Two/venv/RQB2/bin/python3 sap
 
 ```
 SAP-IBM-Quantum-LED/
-├── src/                          # Source code
-│   ├── sap_led_demo.py          # Main LED demo (production)
-│   ├── sap_quantum_led_demo.py  # Quantum-enabled version
+├── src/                              # Source code
+│   ├── sap_led_demo.py              # Main LED demo (production)
+│   ├── sap_quantum_led_demo.py      # Quantum-enabled version
 │   └── neopixel_spi_SAPtestFunc.py  # Standalone text display
-├── scripts/                      # Deployment scripts
-│   └── rq_led_sap_demo.sh       # Launcher script
-├── patches/                      # System patches
-│   ├── patch_virtual_gui.py     # Fix virtual display mapping
-│   └── patch_virtual_gui_yflip.py  # Add Y-flip support
-├── docs/                         # Documentation
-│   ├── FINAL_SOLUTION_SUMMARY.md
-│   ├── QUANTUM_ANALYSIS.md
-│   ├── SAP_QUANTUM_LED_DEMO_COMPLETE.md
-│   ├── SAP_LED_INTEGRATION_COMPLETE.md
-│   └── SAP_LED_DEMO_FINAL_SUMMARY.md
-└── README.md                     # This file
+├── scripts/                          # Deployment & utility scripts
+│   ├── deploy_to_rasqberry.sh       # Automated deployment script
+│   ├── rq_led_sap_demo.sh           # Launcher script
+│   └── install_desktop_icon.sh      # Desktop icon installer
+├── desktop/                          # Desktop integration
+│   └── sap-led-demo.desktop         # Desktop entry file
+├── patches/                          # System patches
+│   ├── patch_virtual_gui.py         # Fix virtual display mapping
+│   └── patch_virtual_gui_yflip.py   # Add Y-flip support
+├── docs/                             # Documentation
+│   ├── DEPLOYMENT_GUIDE.md          # Safe deployment guide
+│   ├── DOCUMENTATION_CHANGELOG.md   # Documentation changes log
+│   └── SAFETY_GUARANTEES.md         # Safety & isolation info
+├── .github/                          # GitHub configuration
+│   ├── workflows/validate.yml       # CI/CD validation
+│   └── COMMIT_TEMPLATE.md           # Commit message template
+└── README.md                         # This file
 ```
 
 ## Quantum Features
