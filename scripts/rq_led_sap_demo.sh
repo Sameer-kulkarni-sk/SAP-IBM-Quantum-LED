@@ -1,6 +1,4 @@
 #!/bin/bash
-set -euo pipefail
-
 ################################################################################
 # rq_led_sap_demo.sh - RasQberry LED SAP Demo Launcher
 #
@@ -9,34 +7,48 @@ set -euo pipefail
 #   Displays SAP logo with interactive color changes
 ################################################################################
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. "${SCRIPT_DIR}/rq_common.sh"
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then 
+    echo "ERROR: This script must be run as root (use sudo)"
+    exit 1
+fi
 
-# Ensure running as root (PWM/PIO drivers require GPIO access)
-ensure_root "$@"
-
-# Load environment and verify required variables
-load_rqb2_env
-verify_env_vars USER_HOME REPO BIN_DIR STD_VENV
-
-# Use the integrated demo with joystick controls
+# Configuration
+USER_HOME="/home/rasqberry"
+VENV_PATH="/home/rasqberry/RasQberry-Two/venv/RQB2"
 LED_SCRIPT="$USER_HOME/led_sap_demo.py"
+BIN_DIR="/usr/bin"
 
-[ -f "$LED_SCRIPT" ] || die "LED demo script not found at: $LED_SCRIPT"
+# Check if demo script exists
+if [ ! -f "$LED_SCRIPT" ]; then
+    echo "ERROR: LED demo script not found at: $LED_SCRIPT"
+    exit 1
+fi
 
-info "Starting LED SAP Demo with Joystick Controls..."
-debug "Script location: $LED_SCRIPT"
-echo
-
-# Activate virtual environment if available
-activate_venv || warn "Virtual environment not available, continuing anyway..."
+echo "INFO: Starting LED SAP Demo with Joystick Controls..."
+echo "Script location: $LED_SCRIPT"
+echo ""
 
 # Set PYTHONPATH to include RQB2-bin for imports
-export PYTHONPATH="$BIN_DIR:$PYTHONPATH"
+export PYTHONPATH="$BIN_DIR${PYTHONPATH:+:$PYTHONPATH}"
 
-# Run the script
-python3 "$LED_SCRIPT"
+# Run with virtual environment Python if available
+if [ -f "$VENV_PATH/bin/python3" ]; then
+    echo "Using RQB2 virtual environment..."
+    "$VENV_PATH/bin/python3" "$LED_SCRIPT"
+else
+    echo "WARNING: RQB2 virtual environment not found, using system Python..."
+    python3 "$LED_SCRIPT"
+fi
 
-# Script handles its own exit prompt now
-echo
+# Exit status
+EXIT_CODE=$?
+echo ""
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "Demo completed successfully"
+else
+    echo "Demo exited with code: $EXIT_CODE"
+fi
+
+echo ""
 read -p "Press Enter to close this window..."
