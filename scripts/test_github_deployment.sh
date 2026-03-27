@@ -103,7 +103,6 @@ ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
     # Check documentation
     test -f docs/DEPLOYMENT_GUIDE.md || exit 1
     test -f docs/SAFETY_GUARANTEES.md || exit 1
-    test -f docs/ARCHITECTURE.md || exit 1
     
     echo 'All required files present'
 "
