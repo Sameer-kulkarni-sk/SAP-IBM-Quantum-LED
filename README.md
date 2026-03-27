@@ -1,230 +1,255 @@
-# SAP LED Demo for RasQberry
+# SAP Quantum LED Demo for RasQberry
 
-A Python-based LED display demo that shows "SAP" on NeoPixel LED matrices, designed for the RasQberry quantum computing platform.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Qiskit](https://img.shields.io/badge/Qiskit-1.0+-purple.svg)](https://qiskit.org/)
 
-## 🎯 Overview
+A quantum-powered LED demonstration for RasQberry that displays "SAP" text on a 24×8 NeoPixel LED matrix with interactive controls and optional quantum computing features.
 
-This project displays the SAP logo across multiple 8x8 LED panels with interactive controls via SenseHat joystick. It matches the functionality and structure of the IBM Quantum LED demo.
+![SAP LED Demo](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 
-## 📋 Features
+## Features
 
-- ✅ Displays "SAP" across 4x 8x8 LED panels (32x8 total)
-- ✅ SAP brand colors: Blue (#0070F2) and Gold (#F0AB00)
-- ✅ Interactive controls via SenseHat joystick
-- ✅ Rainbow animation mode
-- ✅ Proper LED cleanup on exit
-- ✅ Desktop launcher icon
-- ✅ Compatible with RasQberry Two hardware
+- ✅ **Correct Text Display**: "SAP" text properly oriented on both physical LEDs and virtual display
+- ✅ **Interactive Controls**: Joystick button controls for color changes
+- ✅ **Multiple Colors**: Blue, Red, Green, Yellow, Rainbow, and more
+- ✅ **Quantum Computing**: Optional Qiskit integration for quantum-powered color generation
+- ✅ **Virtual Display**: Synchronized virtual LED GUI for monitoring
+- ✅ **Auto-Cycle Mode**: Automatic color cycling when joystick unavailable
 
-## 🔧 Hardware Requirements
+## Hardware Requirements
 
-- Raspberry Pi (tested on Pi 5)
-- 4x 8x8 NeoPixel LED panels (WS2812B, 192 LEDs total)
-- GPIO 18 for LED control
-- SenseHat (optional, for joystick controls)
-- RasQberry Two platform
+- **RasQberry Device** (Raspberry Pi with quantum computing support)
+- **24×8 NeoPixel LED Matrix** (192 LEDs, quad panel layout)
+- **Sense HAT** (optional, for joystick controls)
+- **GPIO Pin 18** for LED control
 
-## 📦 Installation
+## Software Requirements
 
-### On RasQberry Device
+- Python 3.11+
+- RasQberry Two environment
+- Required Python packages:
+  - `rpi_ws281x` (NeoPixel control)
+  - `qiskit` (quantum computing, optional)
+  - `qiskit-aer` (quantum simulator, optional)
+  - `sense_hat` (joystick input, optional)
 
-1. **Copy files to RasQberry:**
+## Installation
+
+### 1. Clone Repository
+
 ```bash
-scp sap_led_demo_multi_panel.py rasqberry@YOUR_IP:/home/rasqberry/led_sap_demo.py
-scp rq_sap_led_demo.sh rasqberry@YOUR_IP:/home/rasqberry/
-scp sap-led-demo.desktop rasqberry@YOUR_IP:/home/rasqberry/Desktop/led_sap_demo.desktop
+git clone https://github.com/yourusername/SAP-IBM-Quantum-LED.git
+cd SAP-IBM-Quantum-LED
 ```
 
-2. **Make scripts executable:**
+### 2. Deploy to RasQberry
+
 ```bash
-ssh rasqberry@YOUR_IP
-chmod +x /home/rasqberry/rq_sap_led_demo.sh
-chmod +x /home/rasqberry/Desktop/led_sap_demo.desktop
+# Copy main demo
+scp src/sap_led_demo.py rasqberry@YOUR_IP:/home/rasqberry/led_sap_demo.py
+
+# Copy launcher script
+scp scripts/rq_led_sap_demo.sh rasqberry@YOUR_IP:/tmp/
+ssh rasqberry@YOUR_IP "sudo cp /tmp/rq_led_sap_demo.sh /usr/bin/ && sudo chmod +x /usr/bin/rq_led_sap_demo.sh"
+
+# Apply virtual display patches (optional)
+scp patches/patch_virtual_gui.py rasqberry@YOUR_IP:/tmp/
+scp patches/patch_virtual_gui_yflip.py rasqberry@YOUR_IP:/tmp/
+ssh rasqberry@YOUR_IP "sudo python3 /tmp/patch_virtual_gui.py && sudo python3 /tmp/patch_virtual_gui_yflip.py"
 ```
 
-3. **Verify RQB2 virtual environment:**
+### 3. Configure LED Matrix
+
+Ensure `/usr/config/rasqberry_environment.env` has:
+
 ```bash
-ls /home/rasqberry/RasQberry-Two/venv/RQB2/bin/python3
+LED_MATRIX_WIDTH=24
+LED_MATRIX_HEIGHT=8
+LED_MATRIX_LAYOUT=quad
+LED_MATRIX_Y_FLIP=true
+LED_VIRTUAL_MIRROR=true
 ```
 
-## 🚀 Usage
+## Usage
 
-### Desktop Icon
-Double-click the "SAP LED Demo" icon on the desktop.
+### Method 1: Desktop Icon
 
-### Command Line
+Double-click the "SAP LED Demo" icon on the RasQberry desktop.
+
+### Method 2: Command Line
+
 ```bash
-sudo /home/rasqberry/rq_sap_led_demo.sh
+sudo /usr/bin/rq_led_sap_demo.sh
 ```
 
-### Direct Python
+### Method 3: Direct Python
+
 ```bash
-sudo /home/rasqberry/RasQberry-Two/venv/RQB2/bin/python3 /home/rasqberry/led_sap_demo.py
+cd /home/rasqberry
+sudo PYTHONPATH=/usr/bin /home/rasqberry/RasQberry-Two/venv/RQB2/bin/python3 led_sap_demo.py
 ```
 
-## 🎮 Controls
+### Method 4: Quantum Version
 
-| Control | Action |
-|---------|--------|
-| **Joystick UP** | Toggle rainbow mode |
-| **Joystick DOWN** | Return to normal colors |
-| **Joystick CENTER** | Exit demo |
-| **Ctrl+C** | Exit demo |
-
-## 🎨 Display Layout
-
-The demo uses 4x 8x8 LED panels arranged horizontally:
-
-```
-┌────────┬────────┬────────┬────────┐
-│   S    │   A    │   P    │ (blank)│
-│ (Blue) │ (Gold) │ (Blue) │        │
-└────────┴────────┴────────┴────────┘
- Panel 1  Panel 2  Panel 3  Panel 4
+```bash
+cd /home/rasqberry
+sudo PYTHONPATH=/usr/bin /home/rasqberry/RasQberry-Two/venv/RQB2/bin/python3 sap_quantum_led_demo.py
 ```
 
-## 📁 Repository Structure
+## Controls
+
+### Joystick Controls
+
+| Button | Action |
+|--------|--------|
+| **UP** | Blue SAP |
+| **DOWN** | Red SAP |
+| **LEFT** | Green SAP |
+| **RIGHT** | Yellow SAP |
+| **PUSH** | Rainbow SAP |
+
+### Keyboard
+
+- **Ctrl+C**: Exit demo
+
+## Project Structure
 
 ```
 SAP-IBM-Quantum-LED/
-├── README.md                      # This file
-├── sap_led_demo_multi_panel.py   # Main demo (multi-panel version)
-├── sap_led_demo_final_v2.py      # Single 8x8 version
-├── rq_sap_led_demo.sh            # Launcher script
-├── sap-led-demo.desktop           # Desktop icon
-├── SAP_LED_DEMO_SOLUTION.md      # Detailed technical documentation
-├── ibm_led_demo.py                # Reference IBM demo
-└── docs/
-    ├── QUICK_START.md
-    ├── TESTING_GUIDE.md
-    └── FINAL_INSTRUCTIONS.md
+├── src/                          # Source code
+│   ├── sap_led_demo.py          # Main LED demo (production)
+│   ├── sap_quantum_led_demo.py  # Quantum-enabled version
+│   └── neopixel_spi_SAPtestFunc.py  # Standalone text display
+├── scripts/                      # Deployment scripts
+│   └── rq_led_sap_demo.sh       # Launcher script
+├── patches/                      # System patches
+│   ├── patch_virtual_gui.py     # Fix virtual display mapping
+│   └── patch_virtual_gui_yflip.py  # Add Y-flip support
+├── docs/                         # Documentation
+│   ├── FINAL_SOLUTION_SUMMARY.md
+│   ├── QUANTUM_ANALYSIS.md
+│   ├── SAP_QUANTUM_LED_DEMO_COMPLETE.md
+│   ├── SAP_LED_INTEGRATION_COMPLETE.md
+│   └── SAP_LED_DEMO_FINAL_SUMMARY.md
+└── README.md                     # This file
 ```
 
-## 🔍 Technical Details
+## Quantum Features
 
-### LED Configuration
-- **Total LEDs:** 192 (4 panels × 8×8)
-- **GPIO Pin:** 18
-- **Pixel Order:** GRB
-- **Brightness:** 0.4 (40%)
-- **Matrix Size:** 24×8 (configured) or 32×8 (physical)
+The quantum version (`sap_quantum_led_demo.py`) includes:
 
-### Virtual Environment
-- **Path:** `/home/rasqberry/RasQberry-Two/venv/RQB2`
-- **Python:** Python 3.11
-- **Key Packages:**
-  - Adafruit-Blinka 8.68.1
-  - adafruit-circuitpython-neopixel 6.3.18
-  - Adafruit-Blinka-Raspberry-Pi5-Neopixel 1.0.0rc2
+### 3-Qubit Color Selector
+- Creates superposition of 8 possible colors
+- Uses Hadamard gates for equal probability
+- Provides true quantum randomness
 
-### LED Mapping
-Uses RasQberry LED utilities (`rq_led_utils`) for:
-- Layout-aware pixel mapping
-- Coordinate transformation (x,y → LED index)
-- Support for tiled/serpentine arrangements
-- Y-axis flipping
+### 8-Qubit RGB Generator
+- Generates custom RGB colors via quantum measurement
+- 3 qubits for Red, 3 for Green, 2 for Blue
+- 256 possible color combinations
 
-## 🐛 Troubleshooting
+### Example Quantum Circuit
 
-### LEDs Not Displaying
-**Problem:** No LED output  
-**Solution:** 
-1. Ensure using RQB2 venv Python
-2. Run with sudo for GPIO access
-3. Check LED hardware connections
+```python
+from qiskit import QuantumCircuit
+from qiskit_aer import Aer
 
-### "GPIO busy" Error
-**Problem:** GPIO already in use  
-**Solution:**
+# Create 3-qubit circuit
+qc = QuantumCircuit(3, 3)
+
+# Apply Hadamard gates (superposition)
+qc.h(0)
+qc.h(1)
+qc.h(2)
+
+# Measure
+qc.measure([0, 1, 2], [0, 1, 2])
+
+# Execute on simulator
+backend = Aer.get_backend('qasm_simulator')
+job = backend.run(transpile(qc, backend), shots=1)
+result = job.result()
+```
+
+## Technical Details
+
+### LED Matrix Configuration
+
+- **Size**: 24×8 (192 LEDs total)
+- **Layout**: Quad (4 panels of 12×4 in 2×2 grid)
+- **Wiring**: TL→TR→BR→BL
+- **Coordinate System**: (0,0) = top-left, (23,7) = bottom-right
+- **Y-Flip**: Applied for correct orientation
+
+### Coordinate Mapping
+
+The demo uses a complex quad panel mapping algorithm:
+
+```python
+def map_xy_to_pixel_quad(x, y):
+    x1 = x * 4 + (0 if x % 2 == 0 else 3)
+    y1 = (7 - y if x % 2 == 0 else y - 7)
+    x2 = 96 + (23 - x) * 4 + (0 if x % 2 == 0 else 3)
+    y2 = (3 - y if x % 2 == 0 else y - 3)
+    return x2 + y2 if y < 4 else x1 + y1
+```
+
+## Troubleshooting
+
+### Issue: Text appears garbled in virtual display
+**Solution**: Apply the virtual display patches:
 ```bash
-sudo pkill -9 python3
-sudo /usr/bin/rq_clear_leds.sh
+sudo python3 /tmp/patch_virtual_gui.py
+sudo python3 /tmp/patch_virtual_gui_yflip.py
 ```
 
-### Wrong Pattern Displayed
-**Problem:** Pattern doesn't look like "SAP"  
-**Solution:**
-1. Verify you have 4x 8x8 panels
-2. Check LED matrix configuration
-3. Use `sap_led_demo_multi_panel.py` version
+### Issue: Text upside down on physical LEDs
+**Solution**: Ensure `LED_MATRIX_Y_FLIP=true` in config
 
-### Desktop Icon Doesn't Work
-**Problem:** Icon doesn't launch demo  
-**Solution:**
+### Issue: Permission denied
+**Solution**: Run with sudo:
 ```bash
-chmod +x /home/rasqberry/rq_sap_led_demo.sh
-chmod +x /home/rasqberry/Desktop/led_sap_demo.desktop
+sudo /usr/bin/rq_led_sap_demo.sh
 ```
 
-## 📚 Documentation
-
-- **[SAP_LED_DEMO_SOLUTION.md](SAP_LED_DEMO_SOLUTION.md)** - Complete technical documentation
-- **[QUICK_START.md](QUICK_START.md)** - Quick setup guide
-- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Testing procedures
-
-## 🔄 Version History
-
-### v3.0 - Multi-Panel Version (Current)
-- Supports 4x 8x8 LED panels
-- Each letter on separate panel
-- Improved LED mapping
-
-### v2.0 - Fixed Pattern Version
-- Corrected 1D pixel list format
-- Fixed neopixel library imports
-- Added RQB2 venv support
-
-### v1.0 - Initial Version
-- Basic SAP display
-- 2D matrix (incorrect format)
-
-## 🤝 Comparison with IBM Demo
-
-| Feature | IBM Demo | SAP Demo | Status |
-|---------|----------|----------|--------|
-| LED Hardware | ✅ NeoPixel | ✅ NeoPixel | ✅ Match |
-| Display Format | ✅ 8x8 pattern | ✅ 8x8 per panel | ✅ Match |
-| Data Structure | ✅ 1D list | ✅ 1D list | ✅ Match |
-| Virtual Environment | ✅ RQB2 | ✅ RQB2 | ✅ Match |
-| LED Utilities | ✅ rq_led_utils | ✅ rq_led_utils | ✅ Match |
-| Button Controls | ✅ SenseHat | ✅ SenseHat | ✅ Match |
-| Desktop Launcher | ✅ Yes | ✅ Yes | ✅ Match |
-
-## 📝 License
-
-This project is created for educational and demonstration purposes on the RasQberry platform.
-
-## 👥 Credits
-
-- **RasQberry Platform:** RasQberry-Two system
-- **IBM Quantum Demo:** Reference implementation (QuantumRaspberryTie)
-- **LED Utilities:** rq_led_utils for layout-aware mapping
-- **Libraries:** Adafruit NeoPixel, CircuitPython, Blinka
-
-## 📧 Support
-
-For issues or questions:
-1. Check [SAP_LED_DEMO_SOLUTION.md](SAP_LED_DEMO_SOLUTION.md) for detailed troubleshooting
-2. Verify hardware connections
-3. Ensure RQB2 virtual environment is active
-4. Run with sudo for GPIO access
-
-## 🎯 Quick Commands
-
+### Issue: Qiskit not found
+**Solution**: Install in RQB2 environment:
 ```bash
-# Clear LEDs
-sudo /usr/bin/rq_clear_leds.sh
-
-# Run demo
-sudo /home/rasqberry/rq_sap_led_demo.sh
-
-# Kill running demo
-sudo pkill -9 -f led_sap_demo.py
-
-# Check if demo is running
-ps aux | grep led_sap_demo
+source /home/rasqberry/RasQberry-Two/venv/RQB2/bin/activate
+pip install qiskit qiskit-aer
 ```
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- **RasQberry Project** - Quantum computing on Raspberry Pi
+- **IBM Quantum** - Qiskit framework and quantum computing resources
+- **SAP** - Inspiration for the demo
+
+## Related Projects
+
+- [RasQberry](https://github.com/JanLahmann/RasQberry) - Quantum computing on Raspberry Pi
+- [Qiskit](https://github.com/Qiskit/qiskit) - Open-source quantum computing framework
+- [IBM Quantum](https://quantum-computing.ibm.com/) - IBM's quantum computing platform
+
+## Contact
+
+For questions or support, please open an issue on GitHub.
 
 ---
 
-**Status:** ✅ Fully functional and tested on RasQberry Two hardware
+**Made with ❤️ for the quantum computing community**

@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*_backup.py
+*_old.py
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+
+# Logs
+*.log
+
+# RasQberry specific
+*.mmap
+
+# Project specific - keep only final versions
+sap_led_demo_*.py
+!sap_led_demo.py
+led_sap_demo_*.py
+neopixel_*_fixed.py
+*_corrected.py
+*_enhanced.py
+*_final_v*.py
+*_hybrid.py
+test_*.py
+run_*.sh
