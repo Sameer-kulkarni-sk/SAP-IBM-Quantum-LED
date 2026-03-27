@@ -2,7 +2,6 @@
 """
 SAP LED Demo - Integrated Version
 Displays "SAP" text on 24x8 LED matrix with joystick controls
-Based on IBM demo text display approach
 """
 
 from rq_led_utils import get_led_config, create_neopixel_strip, map_xy_to_pixel
