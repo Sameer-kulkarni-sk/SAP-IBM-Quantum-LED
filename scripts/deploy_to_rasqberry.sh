@@ -89,28 +89,43 @@ scp scripts/rq_led_sap_demo.sh "${RASQBERRY_HOST}:/tmp/"
 ssh "${RASQBERRY_HOST}" "sudo cp /tmp/rq_led_sap_demo.sh /usr/bin/ && sudo chmod +x /usr/bin/rq_led_sap_demo.sh"
 check_status "Launcher script deployed" "Failed to deploy launcher script"
 
-# Step 5: Deploy desktop icon
-print_info "Step 5/7: Installing desktop icon..."
+# Step 5: Deploy custom icon (if available)
+print_info "Step 5/8: Checking for custom SAP icon..."
+if [ -f "desktop/icons/sap-logo.png" ]; then
+    print_info "Custom SAP icon found, deploying..."
+    scp desktop/icons/sap-logo.png "${RASQBERRY_HOST}:/tmp/"
+    ssh "${RASQBERRY_HOST}" "sudo cp /tmp/sap-logo.png /usr/share/pixmaps/sap-logo.png && sudo chmod 644 /usr/share/pixmaps/sap-logo.png"
+    check_status "Custom SAP icon deployed" "Failed to deploy custom icon"
+else
+    print_warning "No custom icon found at desktop/icons/sap-logo.png"
+    print_info "Using default RasQberry icon as fallback"
+    # Create a fallback by copying rasqberry icon
+    ssh "${RASQBERRY_HOST}" "sudo cp /usr/share/pixmaps/rasqberry.png /usr/share/pixmaps/sap-logo.png 2>/dev/null || true"
+fi
+
+# Step 6: Deploy desktop icon
+print_info "Step 6/8: Installing desktop icon..."
 scp desktop/sap-led-demo.desktop "${RASQBERRY_HOST}:/tmp/"
 scp scripts/install_desktop_icon.sh "${RASQBERRY_HOST}:/tmp/"
 ssh "${RASQBERRY_HOST}" "cd /tmp && chmod +x install_desktop_icon.sh && sudo ./install_desktop_icon.sh"
 check_status "Desktop icon installed" "Failed to install desktop icon"
 
-# Step 6: Deploy quantum version (optional)
-print_info "Step 6/7: Deploying quantum version..."
+# Step 7: Deploy quantum version (optional)
+print_info "Step 7/8: Deploying quantum version..."
 scp src/sap_quantum_led_demo.py "${RASQBERRY_HOST}:/home/rasqberry/"
 ssh "${RASQBERRY_HOST}" "chmod +x /home/rasqberry/sap_quantum_led_demo.py"
 print_success "Quantum version deployed"
 
-# Step 7: Verify deployment
-print_info "Step 7/7: Verifying deployment..."
+# Step 8: Verify deployment
+print_info "Step 8/8: Verifying deployment..."
 echo ""
 
 # Check files exist
 print_info "Checking deployed files..."
 ssh "${RASQBERRY_HOST}" "test -f /home/rasqberry/led_sap_demo.py" && print_success "✓ Main demo script" || print_error "✗ Main demo script missing"
 ssh "${RASQBERRY_HOST}" "test -f /usr/bin/rq_led_sap_demo.sh" && print_success "✓ Launcher script" || print_error "✗ Launcher script missing"
-ssh "${RASQBERRY_HOST}" "test -f /home/rasqberry/Desktop/sap-led-demo.desktop" && print_success "✓ Desktop icon" || print_warning "⚠ Desktop icon missing"
+ssh "${RASQBERRY_HOST}" "test -f /home/rasqberry/Desktop/sap-led-demo.desktop" && print_success "✓ Desktop icon file" || print_warning "⚠ Desktop icon missing"
+ssh "${RASQBERRY_HOST}" "test -f /usr/share/pixmaps/sap-logo.png" && print_success "✓ SAP logo icon" || print_warning "⚠ SAP logo missing"
 ssh "${RASQBERRY_HOST}" "test -f /home/rasqberry/sap_quantum_led_demo.py" && print_success "✓ Quantum version" || print_warning "⚠ Quantum version missing"
 
 echo ""
@@ -125,8 +140,17 @@ echo "=========================================="
 echo ""
 echo "Next Steps:"
 echo "1. Look for 'SAP LED Demo' icon on RasQberry desktop"
+echo "   - Icon should display SAP logo (if custom icon was provided)"
 echo "2. Double-click the icon to launch the demo"
 echo "3. Or run from terminal: sudo /usr/bin/rq_led_sap_demo.sh"
+echo ""
+echo "Custom Icon:"
+if [ -f "desktop/icons/sap-logo.png" ]; then
+    echo "  ✓ Custom SAP logo deployed"
+else
+    echo "  ⚠ No custom icon - using RasQberry logo as fallback"
+    echo "  To add custom icon: Save your logo as desktop/icons/sap-logo.png and re-run deployment"
+fi
 echo ""
 echo "Testing:"
 echo "  ssh ${RASQBERRY_HOST}"

@@ -1,0 +1,10 @@
+# Icon Directory
+
+Place your custom SAP logo here as `sap-logo.png`
+
+The logo you provided should be saved here for deployment to RasQberry.
+
+Recommended specifications:
+- Format: PNG with transparency
+- Size: 64x64 or 128x128 pixels
+- Name: sap-logo.png

@@ -45,13 +45,17 @@ A quantum-powered LED demonstration for RasQberry that displays "SAP" text on a 
 git clone https://github.com/Sameer-kulkarni-sk/SAP-IBM-Quantum-LED.git
 cd SAP-IBM-Quantum-LED
 
-# Deploy everything with one command (includes desktop icon)
+# Verify icon setup (optional)
+./scripts/verify_icon.sh
+
+# Deploy everything with one command (includes custom SAP logo icon)
 ./scripts/deploy_to_rasqberry.sh YOUR_RASQBERRY_IP
 ```
 
 This automated script will:
 - ✅ Deploy the demo to RasQberry
-- ✅ Create a desktop icon for easy access
+- ✅ Install custom SAP logo icon (215KB PNG included)
+- ✅ Create desktop shortcut with SAP branding
 - ✅ Install launcher script
 - ✅ Deploy quantum version
 - ✅ Verify installation
@@ -74,14 +78,20 @@ LED_VIRTUAL_MIRROR=true
 
 ## Usage
 
-### Method 1: Desktop Icon (Easiest)
+### Method 1: Desktop Icon (Easiest) 🎯
 
-After deployment, you'll see a **"SAP LED Demo"** icon on the RasQberry desktop:
+After deployment, you'll see a **"SAP LED Demo"** icon with the SAP logo on the RasQberry desktop:
 
-1. Double-click the icon
-2. Demo launches in terminal window
-3. Use joystick to control colors
-4. Press Ctrl+C to exit
+1. **Look for the SAP logo icon** on desktop
+2. **Double-click** the icon
+3. Demo launches in terminal window
+4. **Use joystick** to control colors (or auto-cycle if no joystick)
+5. **Press Ctrl+C** to exit
+
+**Icon Features:**
+- ✅ Custom SAP logo (blue/purple gradient)
+- ✅ Launches with sudo automatically
+- ✅ Opens in terminal for easy monitoring
 
 ### Method 2: Command Line
 
