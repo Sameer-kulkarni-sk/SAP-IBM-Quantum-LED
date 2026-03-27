@@ -88,10 +88,6 @@ After deployment, you'll see a **"SAP LED Demo"** icon with the SAP logo on the 
 4. **Use joystick** to control colors (or auto-cycle if no joystick)
 5. **Press Ctrl+C** to exit
 
-**Icon Features:**
-- ✅ Custom SAP logo (blue/purple gradient)
-- ✅ Launches with sudo automatically
-- ✅ Opens in terminal for easy monitoring
 
 ### Method 2: Command Line
 
@@ -276,5 +272,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 For questions or support, please open an issue on GitHub.
 
 ---
-
-**Made for the quantum computing community**
