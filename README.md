@@ -36,7 +36,7 @@ A quantum-powered LED demonstration for RasQberry that displays "SAP" text on a 
 
 ## Installation
 
-> **⚠️ IMPORTANT**: See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for safe deployment that won't affect other RasQberry demos or system files.
+> ** IMPORTANT**: See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for safe deployment that won't affect other RasQberry demos or system files.
 
 ### Quick Installation (Recommended)
 
@@ -53,12 +53,12 @@ cd SAP-IBM-Quantum-LED
 ```
 
 This automated script will:
-- ✅ Deploy the demo to RasQberry
-- ✅ Install custom SAP logo icon (215KB PNG included)
-- ✅ Create desktop shortcut with SAP branding
-- ✅ Install launcher script
-- ✅ Deploy quantum version
-- ✅ Verify installation
+-  Deploy the demo to RasQberry
+-  Install custom SAP logo icon (215KB PNG included)
+-  Create desktop shortcut with SAP branding
+-  Install launcher script
+-  Deploy quantum version
+-  Verify installation
 
 ### Manual Installation
 
