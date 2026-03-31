@@ -28,14 +28,6 @@ cd SAP-IBM-Quantum-LED
 ./scripts/deploy_to_rasqberry.sh YOUR_RASQBERRY_IP
 ```
 
-This automated script will:
--  Deploy the demo to RasQberry
--  Install custom SAP logo icon (if provided)
--  Create desktop shortcut with SAP branding
--  Install launcher script
--  Deploy quantum version
--  Verify installation
-
 ### Example Quantum Circuit
 
 ```python
