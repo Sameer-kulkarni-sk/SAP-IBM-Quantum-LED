@@ -1,20 +1,62 @@
 #!/usr/bin/env python3
-# SAP LED Demo - Based on IBM LED Demo
-# Displays "SAP" text on 24x8 LED matrix with rainbow toggle
+"""
+SAP LED Test Function
 
+This module provides a simple test function for displaying the SAP logo
+on a 24x8 LED matrix with automatic rainbow toggle. It's designed for
+testing and validation purposes.
+
+Features:
+    - Automatic color cycling (solid blue → rainbow)
+    - Non-blocking keyboard input for stopping
+    - Simple test loop for validation
+
+Requirements:
+    - RasQberry LED utilities (rq_led_utils)
+    - NeoPixel LED strip
+
+Usage:
+    sudo python3 neopixel_spi_SAPtestFunc.py
+
+Author: SAP-IBM Quantum LED Demo Project
+License: Apache 2.0
+"""
+
+from typing import Tuple
 import time
 import sys
 import select
-from rq_led_utils import get_led_config, create_neopixel_strip, chunked_show, map_xy_to_pixel
+
+from rq_led_utils import (
+    get_led_config,
+    create_neopixel_strip,
+    chunked_show,
+    map_xy_to_pixel
+)
+
+# Configuration
+DELAY: int = 5  # Seconds between color changes
+
+# Color definitions (R, G, B) tuples
+COLOR_BLUE: Tuple[int, int, int] = (0, 0, 255)
+COLOR_RED: Tuple[int, int, int] = (255, 0, 0)
+COLOR_GREEN: Tuple[int, int, int] = (0, 255, 0)
+COLOR_OFF: Tuple[int, int, int] = (0, 0, 0)
+
+# Rainbow gradient colors for each row (y-coordinate)
+RAINBOW_COLORS: dict[int, Tuple[int, int, int]] = {
+    7: (251, 128, 191),  # pink
+    6: (250, 1, 0),      # red
+    5: (249, 131, 31),   # orange
+    4: (248, 223, 8),    # yellow
+    3: (2, 162, 4),      # green
+    2: (0, 196, 173),    # turquoise
+    1: (0, 65, 183),     # blue
+    0: (131, 32, 158),   # purple
+}
 
 # Load configuration from environment file
 config = get_led_config()
-
-# Color definitions - using (R, G, B) tuple format
-color_blue = (0, 0, 255)
-color_red = (255, 0, 0)
-color_green = (0, 255, 0)
-DELAY = 5
 
 # Create LED strip (auto-detects Pi4 PWM or Pi5 PIO)
 pixels = create_neopixel_strip(
@@ -24,168 +66,202 @@ pixels = create_neopixel_strip(
 )
 
 
-def plotcalc(y, x, color, pixels, rainbow):
+def plotcalc(
+    y: int,
+    x: int,
+    color: Tuple[int, int, int],
+    pixels,
+    rainbow: bool
+) -> None:
     """
-    Calculate pixel index using environment-configured layout (single or quad).
+    Set LED color at specified matrix coordinates.
+
+    This function maps 2D matrix coordinates to the physical LED strip index
+    and sets the color. Supports rainbow gradient mode where colors are
+    determined by the y-coordinate.
 
     Args:
-        y: Row index (0-7)
-        x: Column index (0-23)
-        color: Base color value
-        pixels: NeoPixel strip object
-        rainbow: If True, override color with rainbow gradient based on y
+        y: Row index (0-7, where 0 is bottom and 7 is top)
+        x: Column index (0-23, left to right)
+        color: RGB color tuple (R, G, B) with values 0-255
+        pixels: NeoPixel strip object to control LEDs
+        rainbow: If True, use rainbow gradient colors based on y-coordinate,
+                ignoring the color parameter
 
-    Note: Uses map_xy_to_pixel() which reads LED_MATRIX_LAYOUT from environment.
-          Y-flip is handled in rq_led_utils based on LED_MATRIX_Y_FLIP config.
+    Returns:
+        None
+
+    Note:
+        - Uses map_xy_to_pixel() which handles layout configuration
+        - Y-flip is handled automatically based on LED_MATRIX_Y_FLIP config
+        - Out-of-bounds coordinates are silently ignored
     """
-    # Get pixel index from layout-aware mapping function
-    i = map_xy_to_pixel(x, y)
+    pixel_index = map_xy_to_pixel(x, y)
 
-    if i is None:
-        # Out of bounds, skip
+    if pixel_index is None:
         return
 
     if rainbow:
-        if (y == 7):
-            color = (251, 128, 191)  # pink
-        if (y == 6):
-            color = (250, 1, 0)     # red
-        if (y == 5):
-            color = (249, 131, 31)  # orange
-        if (y == 4):
-            color = (248, 223, 8)   # yellow
-        if (y == 3):
-            color = (2, 162, 4)     # green
-        if (y == 2):
-            color = (0, 196, 173)   # turquoise
-        if (y == 1):
-            color = (0, 65, 183)    # blue
-        if (y == 0):
-            color = (131, 32, 158)  # purple
+        color = RAINBOW_COLORS.get(y, color)
 
-    pixels[i] = color
+    pixels[pixel_index] = color
 
 
-def dosap(toggle):
+def dosap(toggle: bool) -> None:
     """
-    Draw SAP logo on LED matrix (Y-flipped only to match IBM orientation).
+    Draw the SAP logo on the LED matrix.
+
+    This function renders the three letters "S", "A", and "P" on the LED
+    matrix using either solid blue color or rainbow gradient. The logo is
+    Y-flipped to match the IBM Quantum LED orientation.
 
     Args:
-        toggle: If True, use rainbow colors; if False, use solid colors (blue for all letters)
+        toggle: If True, use rainbow gradient; if False, use solid blue
+
+    Returns:
+        None
+
+    Note:
+        The logo occupies approximately:
+        - Letter S: columns 0-5
+        - Letter A: columns 8-13
+        - Letter P: columns 16-21
+        - All letters span rows 0-7 (full height)
     """
     # Letter "S" (blue) - Y-flipped only (y=7-y, x stays same)
-    plotcalc(7, 0, color_blue, pixels, toggle)
-    plotcalc(7, 1, color_blue, pixels, toggle)
-    plotcalc(7, 2, color_blue, pixels, toggle)
-    plotcalc(7, 3, color_blue, pixels, toggle)
-    plotcalc(7, 4, color_blue, pixels, toggle)
-    plotcalc(7, 5, color_blue, pixels, toggle)
-    plotcalc(6, 0, color_blue, pixels, toggle)
-    plotcalc(6, 1, color_blue, pixels, toggle)
-    plotcalc(5, 0, color_blue, pixels, toggle)
-    plotcalc(5, 1, color_blue, pixels, toggle)
-    plotcalc(4, 0, color_blue, pixels, toggle)
-    plotcalc(4, 1, color_blue, pixels, toggle)
-    plotcalc(4, 2, color_blue, pixels, toggle)
-    plotcalc(4, 3, color_blue, pixels, toggle)
-    plotcalc(4, 4, color_blue, pixels, toggle)
-    plotcalc(3, 2, color_blue, pixels, toggle)
-    plotcalc(3, 3, color_blue, pixels, toggle)
-    plotcalc(3, 4, color_blue, pixels, toggle)
-    plotcalc(3, 5, color_blue, pixels, toggle)
-    plotcalc(2, 4, color_blue, pixels, toggle)
-    plotcalc(2, 5, color_blue, pixels, toggle)
-    plotcalc(1, 4, color_blue, pixels, toggle)
-    plotcalc(1, 5, color_blue, pixels, toggle)
-    plotcalc(0, 0, color_blue, pixels, toggle)
-    plotcalc(0, 1, color_blue, pixels, toggle)
-    plotcalc(0, 2, color_blue, pixels, toggle)
-    plotcalc(0, 3, color_blue, pixels, toggle)
-    plotcalc(0, 4, color_blue, pixels, toggle)
-    plotcalc(0, 5, color_blue, pixels, toggle)
+    plotcalc(7, 0, COLOR_BLUE, pixels, toggle)
+    plotcalc(7, 1, COLOR_BLUE, pixels, toggle)
+    plotcalc(7, 2, COLOR_BLUE, pixels, toggle)
+    plotcalc(7, 3, COLOR_BLUE, pixels, toggle)
+    plotcalc(7, 4, COLOR_BLUE, pixels, toggle)
+    plotcalc(7, 5, COLOR_BLUE, pixels, toggle)
+    plotcalc(6, 0, COLOR_BLUE, pixels, toggle)
+    plotcalc(6, 1, COLOR_BLUE, pixels, toggle)
+    plotcalc(5, 0, COLOR_BLUE, pixels, toggle)
+    plotcalc(5, 1, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 0, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 1, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 2, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 3, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 4, COLOR_BLUE, pixels, toggle)
+    plotcalc(3, 2, COLOR_BLUE, pixels, toggle)
+    plotcalc(3, 3, COLOR_BLUE, pixels, toggle)
+    plotcalc(3, 4, COLOR_BLUE, pixels, toggle)
+    plotcalc(3, 5, COLOR_BLUE, pixels, toggle)
+    plotcalc(2, 4, COLOR_BLUE, pixels, toggle)
+    plotcalc(2, 5, COLOR_BLUE, pixels, toggle)
+    plotcalc(1, 4, COLOR_BLUE, pixels, toggle)
+    plotcalc(1, 5, COLOR_BLUE, pixels, toggle)
+    plotcalc(0, 0, COLOR_BLUE, pixels, toggle)
+    plotcalc(0, 1, COLOR_BLUE, pixels, toggle)
+    plotcalc(0, 2, COLOR_BLUE, pixels, toggle)
+    plotcalc(0, 3, COLOR_BLUE, pixels, toggle)
+    plotcalc(0, 4, COLOR_BLUE, pixels, toggle)
+    plotcalc(0, 5, COLOR_BLUE, pixels, toggle)
 
     # Letter "A" (blue) - Y-flipped only
-    plotcalc(7, 10, color_blue, pixels, toggle)
-    plotcalc(7, 11, color_blue, pixels, toggle)
-    plotcalc(6, 9, color_blue, pixels, toggle)
-    plotcalc(6, 12, color_blue, pixels, toggle)
-    plotcalc(5, 8, color_blue, pixels, toggle)
-    plotcalc(5, 13, color_blue, pixels, toggle)
-    plotcalc(4, 8, color_blue, pixels, toggle)
-    plotcalc(4, 9, color_blue, pixels, toggle)
-    plotcalc(4, 10, color_blue, pixels, toggle)
-    plotcalc(4, 11, color_blue, pixels, toggle)
-    plotcalc(4, 12, color_blue, pixels, toggle)
-    plotcalc(4, 13, color_blue, pixels, toggle)
-    plotcalc(3, 8, color_blue, pixels, toggle)
-    plotcalc(3, 13, color_blue, pixels, toggle)
-    plotcalc(2, 8, color_blue, pixels, toggle)
-    plotcalc(2, 13, color_blue, pixels, toggle)
-    plotcalc(1, 8, color_blue, pixels, toggle)
-    plotcalc(1, 13, color_blue, pixels, toggle)
-    plotcalc(0, 8, color_blue, pixels, toggle)
-    plotcalc(0, 13, color_blue, pixels, toggle)
+    plotcalc(7, 10, COLOR_BLUE, pixels, toggle)
+    plotcalc(7, 11, COLOR_BLUE, pixels, toggle)
+    plotcalc(6, 9, COLOR_BLUE, pixels, toggle)
+    plotcalc(6, 12, COLOR_BLUE, pixels, toggle)
+    plotcalc(5, 8, COLOR_BLUE, pixels, toggle)
+    plotcalc(5, 13, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 8, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 9, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 10, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 11, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 12, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 13, COLOR_BLUE, pixels, toggle)
+    plotcalc(3, 8, COLOR_BLUE, pixels, toggle)
+    plotcalc(3, 13, COLOR_BLUE, pixels, toggle)
+    plotcalc(2, 8, COLOR_BLUE, pixels, toggle)
+    plotcalc(2, 13, COLOR_BLUE, pixels, toggle)
+    plotcalc(1, 8, COLOR_BLUE, pixels, toggle)
+    plotcalc(1, 13, COLOR_BLUE, pixels, toggle)
+    plotcalc(0, 8, COLOR_BLUE, pixels, toggle)
+    plotcalc(0, 13, COLOR_BLUE, pixels, toggle)
 
     # Letter "P" (blue) - Y-flipped only
-    plotcalc(7, 16, color_blue, pixels, toggle)
-    plotcalc(7, 17, color_blue, pixels, toggle)
-    plotcalc(7, 18, color_blue, pixels, toggle)
-    plotcalc(7, 19, color_blue, pixels, toggle)
-    plotcalc(7, 20, color_blue, pixels, toggle)
-    plotcalc(6, 16, color_blue, pixels, toggle)
-    plotcalc(6, 17, color_blue, pixels, toggle)
-    plotcalc(6, 20, color_blue, pixels, toggle)
-    plotcalc(6, 21, color_blue, pixels, toggle)
-    plotcalc(5, 16, color_blue, pixels, toggle)
-    plotcalc(5, 17, color_blue, pixels, toggle)
-    plotcalc(5, 20, color_blue, pixels, toggle)
-    plotcalc(5, 21, color_blue, pixels, toggle)
-    plotcalc(4, 16, color_blue, pixels, toggle)
-    plotcalc(4, 17, color_blue, pixels, toggle)
-    plotcalc(4, 18, color_blue, pixels, toggle)
-    plotcalc(4, 19, color_blue, pixels, toggle)
-    plotcalc(4, 20, color_blue, pixels, toggle)
-    plotcalc(3, 16, color_blue, pixels, toggle)
-    plotcalc(3, 17, color_blue, pixels, toggle)
-    plotcalc(2, 16, color_blue, pixels, toggle)
-    plotcalc(2, 17, color_blue, pixels, toggle)
-    plotcalc(1, 16, color_blue, pixels, toggle)
-    plotcalc(1, 17, color_blue, pixels, toggle)
-    plotcalc(0, 16, color_blue, pixels, toggle)
-    plotcalc(0, 17, color_blue, pixels, toggle)
+    plotcalc(7, 16, COLOR_BLUE, pixels, toggle)
+    plotcalc(7, 17, COLOR_BLUE, pixels, toggle)
+    plotcalc(7, 18, COLOR_BLUE, pixels, toggle)
+    plotcalc(7, 19, COLOR_BLUE, pixels, toggle)
+    plotcalc(7, 20, COLOR_BLUE, pixels, toggle)
+    plotcalc(6, 16, COLOR_BLUE, pixels, toggle)
+    plotcalc(6, 17, COLOR_BLUE, pixels, toggle)
+    plotcalc(6, 20, COLOR_BLUE, pixels, toggle)
+    plotcalc(6, 21, COLOR_BLUE, pixels, toggle)
+    plotcalc(5, 16, COLOR_BLUE, pixels, toggle)
+    plotcalc(5, 17, COLOR_BLUE, pixels, toggle)
+    plotcalc(5, 20, COLOR_BLUE, pixels, toggle)
+    plotcalc(5, 21, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 16, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 17, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 18, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 19, COLOR_BLUE, pixels, toggle)
+    plotcalc(4, 20, COLOR_BLUE, pixels, toggle)
+    plotcalc(3, 16, COLOR_BLUE, pixels, toggle)
+    plotcalc(3, 17, COLOR_BLUE, pixels, toggle)
+    plotcalc(2, 16, COLOR_BLUE, pixels, toggle)
+    plotcalc(2, 17, COLOR_BLUE, pixels, toggle)
+    plotcalc(1, 16, COLOR_BLUE, pixels, toggle)
+    plotcalc(1, 17, COLOR_BLUE, pixels, toggle)
+    plotcalc(0, 16, COLOR_BLUE, pixels, toggle)
+    plotcalc(0, 17, COLOR_BLUE, pixels, toggle)
 
 
-# Main loop - simple toggle between solid colors and rainbow
-print("SAP LED Demo (Final - Correct Orientation)")
-print("=" * 50)
-print(f"Matrix: {config['matrix_width']}x{config['matrix_height']}")
-print(f"Layout: {config['layout']}")
-print()
-print("Press Enter to stop...")
-print()
+def main() -> None:
+    """
+    Main test loop for SAP LED display.
 
-try:
-    while True:
-        dosap(0)  # Solid blue color
-        chunked_show(pixels)
-        time.sleep(DELAY)
-        dosap(1)  # Rainbow gradient based on rows
-        chunked_show(pixels)
-        time.sleep(DELAY)
+    This function runs a simple test loop that alternates between solid blue
+    and rainbow gradient displays. It supports non-blocking keyboard input
+    for stopping the demo.
 
-        # Check for Enter key press (non-blocking)
-        if select.select([sys.stdin], [], [], 0)[0]:
-            sys.stdin.readline()
-            print("\nStopping demo...")
-            break
+    Returns:
+        None
 
-except KeyboardInterrupt:
-    print("\n\nDemo interrupted by user")
+    Raises:
+        KeyboardInterrupt: When user presses Ctrl+C to exit
+    """
+    print("SAP LED Test Function")
+    print("=" * 50)
+    print(f"Matrix: {config['matrix_width']}x{config['matrix_height']}")
+    print(f"Layout: {config['layout']}")
+    print(f"Total LEDs: {config['led_count']}")
+    print()
+    print("Press Enter to stop...")
+    print()
 
-finally:
-    # Clear all LEDs
-    print("Clearing LEDs...")
-    for i in range(config['led_count']):
-        pixels[i] = (0, 0, 0)
-    pixels.show()
-    print("Done!")
+    try:
+        while True:
+            # Solid blue color
+            dosap(False)
+            chunked_show(pixels)
+            time.sleep(DELAY)
+
+            # Rainbow gradient
+            dosap(True)
+            chunked_show(pixels)
+            time.sleep(DELAY)
+
+            # Check for Enter key press (non-blocking)
+            if select.select([sys.stdin], [], [], 0)[0]:
+                sys.stdin.readline()
+                print("\nStopping demo...")
+                break
+
+    except KeyboardInterrupt:
+        print("\n\nDemo interrupted by user")
+
+    finally:
+        # Clear all LEDs
+        print("Clearing LEDs...")
+        for i in range(config['led_count']):
+            pixels[i] = COLOR_OFF
+        pixels.show()
+        print("Done!")
+
+
+if __name__ == '__main__':
+    main()

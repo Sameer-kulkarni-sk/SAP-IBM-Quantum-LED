@@ -1,16 +1,45 @@
 #!/usr/bin/env python3
 """
 SAP Quantum LED Demo
-Displays "SAP" text on LED matrix with quantum-powered color selection
-Uses Qiskit to generate truly random colors via quantum measurements
+
+This module displays the "SAP" logo on a 24x8 LED matrix with quantum-powered
+color selection using Qiskit. It demonstrates quantum computing concepts by
+using quantum circuits to generate truly random colors.
+
+Features:
+    - Quantum random color selection from predefined palette
+    - Quantum RGB color generation using superposition
+    - Interactive joystick control
+    - Automatic quantum color cycling in demo mode
+    - Fallback to pseudo-random when Qiskit unavailable
+
+Quantum Mechanics:
+    - Uses 3-qubit circuits for 8-color palette selection
+    - Uses 8-qubit circuits for full RGB generation
+    - Hadamard gates create quantum superposition
+    - Measurement collapses to truly random values
+
+Requirements:
+    - RasQberry LED utilities (rq_led_utils)
+    - NeoPixel LED strip
+    - Qiskit and Qiskit Aer (optional, falls back to pseudo-random)
+    - Optional: Sense HAT for joystick control
+
+Usage:
+    sudo python3 sap_quantum_led_demo.py
+
+Author: SAP-IBM Quantum LED Demo Project
+License: Apache 2.0
 """
 
-from rq_led_utils import get_led_config, create_neopixel_strip, map_xy_to_pixel
+from typing import Tuple, List
 import sys
 import os
 import time
 
-# Add RQB2-bin to path for imports BEFORE importing rq_led_utils
+from rq_led_utils import get_led_config, create_neopixel_strip, map_xy_to_pixel
+
+# Add RQB2-bin to path for imports
 sys.path.insert(0, '/usr/bin')
 
 
@@ -26,74 +55,119 @@ except ImportError as e:
     print(f"✗ Quantum libraries not available: {e}")
     print("  Will use pseudo-random colors instead")
 
-# Color definitions
-color_blue = (0, 0, 255)
-color_red = (255, 0, 0)
-color_green = (0, 255, 0)
-color_yellow = (255, 255, 0)
-color_cyan = (0, 255, 255)
-color_magenta = (255, 0, 255)
-color_white = (255, 255, 255)
-color_orange = (255, 165, 0)
-color_off = (0, 0, 0)
+# Color definitions (R, G, B) tuples
+COLOR_BLUE: Tuple[int, int, int] = (0, 0, 255)
+COLOR_RED: Tuple[int, int, int] = (255, 0, 0)
+COLOR_GREEN: Tuple[int, int, int] = (0, 255, 0)
+COLOR_YELLOW: Tuple[int, int, int] = (255, 255, 0)
+COLOR_CYAN: Tuple[int, int, int] = (0, 255, 255)
+COLOR_MAGENTA: Tuple[int, int, int] = (255, 0, 255)
+COLOR_WHITE: Tuple[int, int, int] = (255, 255, 255)
+COLOR_ORANGE: Tuple[int, int, int] = (255, 165, 0)
+COLOR_OFF: Tuple[int, int, int] = (0, 0, 0)
 
-# Predefined color palette
-COLORS = [color_blue, color_red, color_green, color_yellow,
-          color_cyan, color_magenta, color_orange, color_white]
+# Predefined color palette for quantum selection (8 colors for 3-qubit circuit)
+COLORS: List[Tuple[int, int, int]] = [
+    COLOR_BLUE, COLOR_RED, COLOR_GREEN, COLOR_YELLOW,
+    COLOR_CYAN, COLOR_MAGENTA, COLOR_ORANGE, COLOR_WHITE
+]
+
+# Rainbow gradient colors for each row (y-coordinate)
+RAINBOW_COLORS: dict[int, Tuple[int, int, int]] = {
+    7: (251, 128, 191),  # pink
+    6: (250, 1, 0),      # red
+    5: (249, 131, 31),   # orange
+    4: (248, 223, 8),    # yellow
+    3: (2, 162, 4),      # green
+    2: (0, 196, 173),    # turquoise
+    1: (0, 65, 183),     # blue
+    0: (131, 32, 158),   # purple
+}
 
 
-def plotcalc(y, x, color, pixels, rainbow=False):
+def plotcalc(
+    y: int,
+    x: int,
+    color: Tuple[int, int, int],
+    pixels,
+    rainbow: bool = False
+) -> None:
     """
-    Calculate pixel index using environment-configured layout.
+    Set LED color at specified matrix coordinates.
+
+    This function maps 2D matrix coordinates to the physical LED strip index
+    and sets the color. Supports rainbow gradient mode where colors are
+    determined by the y-coordinate.
 
     Args:
-        y: Row index (0-7)
-        x: Column index (0-23)
-        color: Base color value
-        pixels: NeoPixel strip object
-        rainbow: If True, override color with rainbow gradient based on y
-    """
-    i = map_xy_to_pixel(x, y)
+        y: Row index (0-7, where 0 is bottom and 7 is top)
+        x: Column index (0-23, left to right)
+        color: RGB color tuple (R, G, B) with values 0-255
+        pixels: NeoPixel strip object to control LEDs
+        rainbow: If True, use rainbow gradient colors based on y-coordinate,
+                ignoring the color parameter
 
-    if i is None:
+    Returns:
+        None
+
+    Note:
+        - Uses map_xy_to_pixel() which handles layout configuration
+        - Y-flip is handled automatically based on LED_MATRIX_Y_FLIP config
+        - Out-of-bounds coordinates are silently ignored
+    """
+    pixel_index = map_xy_to_pixel(x, y)
+
+    if pixel_index is None:
         return
 
     if rainbow:
-        if (y == 7):
-            color = (251, 128, 191)  # pink
-        if (y == 6):
-            color = (250, 1, 0)      # red
-        if (y == 5):
-            color = (249, 131, 31)   # orange
-        if (y == 4):
-            color = (248, 223, 8)    # yellow
-        if (y == 3):
-            color = (2, 162, 4)      # green
-        if (y == 2):
-            color = (0, 196, 173)    # turquoise
-        if (y == 1):
-            color = (0, 65, 183)     # blue
-        if (y == 0):
-            color = (131, 32, 158)   # purple
+        color = RAINBOW_COLORS.get(y, color)
 
-    pixels[i] = color
+    pixels[pixel_index] = color
 
 
-def clear_display(pixels, config):
-    """Clear all LEDs"""
-    for i in range(config['led_count']):
-        pixels[i] = color_off
-    pixels.show()
-
-
-def dosap(pixels, color=color_blue, rainbow=False):
+def clear_display(pixels, config: dict) -> None:
     """
-    Draw SAP logo on LED matrix (Y-flipped).
+    Clear all LEDs by setting them to off.
 
     Args:
         pixels: NeoPixel strip object
-        color: Color to use for the text
-        rainbow: If True, use rainbow gradient
+        config: LED configuration dictionary containing 'led_count'
+
+    Returns:
+        None
+    """
+    for i in range(config['led_count']):
+        pixels[i] = COLOR_OFF
+    pixels.show()
+
+
+def dosap(
+    pixels,
+    color: Tuple[int, int, int] = COLOR_BLUE,
+    rainbow: bool = False
+) -> None:
+    """
+    Draw the SAP logo on the LED matrix.
+
+    This function renders the three letters "S", "A", and "P" on the LED
+    matrix using the specified color or rainbow gradient. The logo is
+    Y-flipped to match the IBM Quantum LED orientation.
+
+    Args:
+        pixels: NeoPixel strip object to control LEDs
+        color: RGB color tuple for the logo (default: blue)
+        rainbow: If True, use rainbow gradient instead of solid color
+
+    Returns:
+        None
+
+    Note:
+        The logo occupies approximately:
+        - Letter S: columns 0-5
+        - Letter A: columns 8-13
+        - Letter P: columns 16-21
+        - All letters span rows 0-7 (full height)
     """
     # Letter "S" (Y-flipped: y=7-y, x stays same)
     plotcalc(7, 0, color, pixels, rainbow)
@@ -177,10 +251,30 @@ def dosap(pixels, color=color_blue, rainbow=False):
     plotcalc(0, 17, color, pixels, rainbow)
 
 
-def quantum_color_selector():
+def quantum_color_selector() -> Tuple[int, int, int]:
     """
-    Use quantum circuit to randomly select a color.
-    Returns a color tuple (R, G, B).
+    Use quantum circuit to randomly select a color from the palette.
+
+    This function creates a 3-qubit quantum circuit in superposition and
+    measures it to get a truly random 3-bit number (0-7), which is used
+    to select one of 8 predefined colors.
+
+    Quantum Process:
+        1. Create 3-qubit circuit (2^3 = 8 possible outcomes)
+        2. Apply Hadamard gates to create equal superposition
+        3. Measure all qubits
+        4. Convert binary result to color index
+
+    Returns:
+        Tuple[int, int, int]: RGB color tuple selected by quantum measurement
+
+    Fallback:
+        If Qiskit is unavailable or an error occurs, falls back to
+        pseudo-random selection using Python's random module.
+
+    Example:
+        >>> color = quantum_color_selector()
+        >>> print(color)  # e.g., (255, 0, 0) for red
     """
     if not QUANTUM_AVAILABLE:
         # Fallback to pseudo-random
@@ -219,10 +313,35 @@ def quantum_color_selector():
         return random.choice(COLORS)
 
 
-def quantum_rgb_generator():
+def quantum_rgb_generator() -> Tuple[int, int, int]:
     """
-    Use quantum circuit to generate RGB values directly.
-    Returns a color tuple (R, G, B) with quantum-generated values.
+    Use quantum circuit to generate RGB color values directly.
+
+    This function creates an 8-qubit quantum circuit to generate random
+    RGB values. The 8 qubits are distributed as: 3 bits for red, 3 bits
+    for green, and 2 bits for blue, then scaled to 8-bit color values.
+
+    Quantum Process:
+        1. Create 8-qubit circuit
+        2. Apply Hadamard gates to all qubits (superposition)
+        3. Measure all qubits
+        4. Extract and scale RGB values from measurement
+
+    Bit Distribution:
+        - Qubits 0-2: Red channel (3 bits → 0-7 → scaled to 0-224)
+        - Qubits 3-5: Green channel (3 bits → 0-7 → scaled to 0-224)
+        - Qubits 6-7: Blue channel (2 bits → 0-3 → scaled to 0-192)
+
+    Returns:
+        Tuple[int, int, int]: Quantum-generated RGB color tuple
+
+    Fallback:
+        If Qiskit is unavailable or an error occurs, falls back to
+        pseudo-random RGB generation.
+
+    Example:
+        >>> color = quantum_rgb_generator()
+        >>> print(color)  # e.g., (128, 192, 64)
     """
     if not QUANTUM_AVAILABLE:
         import random
@@ -261,8 +380,19 @@ def quantum_rgb_generator():
         return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
 
-def main():
-    """Main demo function with quantum color selection."""
+def main() -> int:
+    """
+    Main demo function with quantum color selection.
+
+    This function initializes the LED matrix, detects available input methods
+    (joystick or auto-cycle), and runs the interactive quantum demo loop.
+
+    Returns:
+        int: Exit code (0 for success, 1 for error)
+
+    Raises:
+        KeyboardInterrupt: When user presses Ctrl+C to exit
+    """
     print("=" * 70)
     print("SAP Quantum LED Demo")
     print("=" * 70)
@@ -325,7 +455,7 @@ def main():
     print()
 
     # Current state
-    current_color = color_blue
+    current_color = COLOR_BLUE
     current_rainbow = False
     color_cycle_index = 0
 
@@ -362,12 +492,12 @@ def main():
                             # Rainbow
                             print("LEFT - Rainbow SAP")
                             current_rainbow = True
-                            dosap(pixels, color_blue, current_rainbow)
+                            dosap(pixels, COLOR_BLUE, current_rainbow)
 
                         elif event.direction == "right":
                             # Default blue
                             print("RIGHT - Blue SAP")
-                            current_color = color_blue
+                            current_color = COLOR_BLUE
                             current_rainbow = False
                             dosap(pixels, current_color, current_rainbow)
 
@@ -407,7 +537,7 @@ def main():
                 # Rainbow
                 print("Rainbow mode...")
                 clear_display(pixels, config)
-                dosap(pixels, color_blue, True)
+                dosap(pixels, COLOR_BLUE, True)
                 pixels.show()
                 time.sleep(3.0)
 

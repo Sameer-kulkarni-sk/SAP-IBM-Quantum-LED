@@ -1,17 +1,49 @@
 #!/bin/bash
-# Test script to verify GitHub deployment to RasQberry works correctly
-# This simulates a fresh clone and deployment from GitHub
+################################################################################
+# test_github_deployment.sh - GitHub to RasQberry Deployment Test
+#
+# Description:
+#   Comprehensive test script to verify GitHub deployment to RasQberry.
+#   Simulates a fresh clone and deployment from GitHub repository.
+#
+# Usage:
+#   ./scripts/test_github_deployment.sh [RASQBERRY_IP]
+#
+# Arguments:
+#   RASQBERRY_IP - IP address of target RasQberry (optional)
+#
+# Example:
+#   ./scripts/test_github_deployment.sh 192.168.1.100
+#
+# Requirements:
+#   - SSH access to RasQberry device
+#   - Git installed on RasQberry
+#   - RasQberry-Two environment configured
+#
+# Author: SAP-IBM Quantum LED Demo Project
+# License: Apache 2.0
+################################################################################
 
 set -e  # Exit on any error
+set -u  # Exit on undefined variable
 
-RASQBERRY_IP="${1:-100.67.33.252}"
-RASQBERRY_USER="rasqberry"
-GITHUB_REPO="https://github.com/Sameer-kulkarni-sk/SAP-IBM-Quantum-LED.git"
-TEST_DIR="/tmp/sap-led-test-$$"
+# Configuration - can be overridden by environment variables
+readonly RASQBERRY_IP="${1:-}"
+readonly RASQBERRY_USER="${RASQBERRY_USER:-rasqberry}"
+readonly GITHUB_REPO="${GITHUB_REPO:-https://github.com/Sameer-kulkarni-sk/SAP-IBM-Quantum-LED.git}"
+readonly TEST_DIR="/tmp/sap-led-test-$$"
 
-echo "=================================="
-echo "GitHub to RasQberry Deployment Test"
-echo "=================================="
+# Validate IP address provided
+if [ -z "${RASQBERRY_IP}" ]; then
+    echo "ERROR: RasQberry IP address required"
+    echo "Usage: $0 <RASQBERRY_IP>"
+    echo "Example: $0 192.168.1.100"
+    exit 1
+fi
+
+echo "=========================================="
+echo "  GitHub to RasQberry Deployment Test"
+echo "=========================================="
 echo ""
 echo "Target: ${RASQBERRY_USER}@${RASQBERRY_IP}"
 echo "Repository: ${GITHUB_REPO}"
@@ -19,10 +51,10 @@ echo "Test Directory: ${TEST_DIR}"
 echo ""
 
 # Colors for output
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+readonly GREEN='\033[0;32m'
+readonly RED='\033[0;31m'
+readonly YELLOW='\033[1;33m'
+readonly NC='\033[0m' # No Color
 
 success() {
     echo -e "${GREEN}✅ $1${NC}"
@@ -239,9 +271,9 @@ success "Test directory cleaned up"
 
 # Final Summary
 echo ""
-echo "=================================="
+echo "=========================================="
 echo "✅ ALL TESTS PASSED!"
-echo "=================================="
+echo "=========================================="
 echo ""
 echo "Deployment Verification Summary:"
 echo "  ✅ SSH connectivity working"
@@ -257,6 +289,7 @@ echo "  ✅ Virtual display compatible"
 echo "  ✅ No unauthorized modifications"
 echo "  ✅ Rollback capability verified"
 echo ""
+echo ""
 echo "🎉 GitHub to RasQberry deployment is SAFE and WORKING!"
 echo ""
 echo "To run the SAP demo on RasQberry:"
@@ -265,5 +298,5 @@ echo "  sudo /usr/bin/rq_led_sap_demo.sh"
 echo ""
 echo "To restore backups (if needed):"
 echo "  ssh ${RASQBERRY_USER}@${RASQBERRY_IP}"
-echo "  cp /home/rasqberry/led_sap_demo.py.test_backup /home/rasqberry/led_sap_demo.py"
+echo "  cp /home/${RASQBERRY_USER}/led_sap_demo.py.test_backup /home/${RASQBERRY_USER}/led_sap_demo.py"
 echo ""

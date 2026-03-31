@@ -1,81 +1,147 @@
 #!/usr/bin/env python3
 """
 SAP LED Demo - Integrated Version
-Displays "SAP" text on 24x8 LED matrix with joystick controls
+
+This module displays the "SAP" logo on a 24x8 LED matrix with interactive
+joystick controls. It supports multiple color modes and automatic cycling
+when no joystick is available.
+
+Features:
+    - Interactive joystick control for color selection
+    - Multiple color modes (blue, red, green, yellow, rainbow)
+    - Automatic color cycling in demo mode
+    - Support for both single and quad LED matrix layouts
+
+Requirements:
+    - RasQberry LED utilities (rq_led_utils)
+    - NeoPixel LED strip
+    - Optional: Sense HAT for joystick control
+
+Usage:
+    sudo python3 sap_led_demo.py
+
+Author: SAP-IBM Quantum LED Demo Project
+License: Apache 2.0
 """
 
-from rq_led_utils import get_led_config, create_neopixel_strip, map_xy_to_pixel
+from typing import Tuple, Optional
 import sys
 import os
 import time
 
-# Add RQB2-bin to path for imports BEFORE importing rq_led_utils
+from rq_led_utils import get_led_config, create_neopixel_strip, map_xy_to_pixel
+
+# Add RQB2-bin to path for imports
 sys.path.insert(0, '/usr/bin')
 
 
-# Color definitions
-color_blue = (0, 0, 255)
-color_red = (255, 0, 0)
-color_green = (0, 255, 0)
-color_yellow = (255, 255, 0)
-color_white = (255, 255, 255)
-color_off = (0, 0, 0)
+# Color definitions (R, G, B) tuples
+COLOR_BLUE: Tuple[int, int, int] = (0, 0, 255)
+COLOR_RED: Tuple[int, int, int] = (255, 0, 0)
+COLOR_GREEN: Tuple[int, int, int] = (0, 255, 0)
+COLOR_YELLOW: Tuple[int, int, int] = (255, 255, 0)
+COLOR_WHITE: Tuple[int, int, int] = (255, 255, 255)
+COLOR_OFF: Tuple[int, int, int] = (0, 0, 0)
+
+# Rainbow gradient colors for each row (y-coordinate)
+RAINBOW_COLORS: dict[int, Tuple[int, int, int]] = {
+    7: (251, 128, 191),  # pink
+    6: (250, 1, 0),      # red
+    5: (249, 131, 31),   # orange
+    4: (248, 223, 8),    # yellow
+    3: (2, 162, 4),      # green
+    2: (0, 196, 173),    # turquoise
+    1: (0, 65, 183),     # blue
+    0: (131, 32, 158),   # purple
+}
 
 
-def plotcalc(y, x, color, pixels, rainbow=False):
+def plotcalc(
+    y: int,
+    x: int,
+    color: Tuple[int, int, int],
+    pixels,
+    rainbow: bool = False
+) -> None:
     """
-    Calculate pixel index using environment-configured layout (single or quad).
+    Set LED color at specified matrix coordinates.
+
+    This function maps 2D matrix coordinates to the physical LED strip index
+    and sets the color. Supports rainbow gradient mode where colors are
+    determined by the y-coordinate.
 
     Args:
-        y: Row index (0-7)
-        x: Column index (0-23)
-        color: Base color value
-        pixels: NeoPixel strip object
-        rainbow: If True, override color with rainbow gradient based on y
+        y: Row index (0-7, where 0 is bottom and 7 is top)
+        x: Column index (0-23, left to right)
+        color: RGB color tuple (R, G, B) with values 0-255
+        pixels: NeoPixel strip object to control LEDs
+        rainbow: If True, use rainbow gradient colors based on y-coordinate,
+                ignoring the color parameter
+
+    Returns:
+        None
+
+    Note:
+        - Uses map_xy_to_pixel() which handles layout configuration
+        - Y-flip is handled automatically based on LED_MATRIX_Y_FLIP config
+        - Out-of-bounds coordinates are silently ignored
     """
     # Get pixel index from layout-aware mapping function
-    i = map_xy_to_pixel(x, y)
+    pixel_index = map_xy_to_pixel(x, y)
 
-    if i is None:
-        # Out of bounds, skip
+    if pixel_index is None:
+        # Out of bounds, skip silently
         return
 
+    # Apply rainbow gradient if requested
     if rainbow:
-        if (y == 7):
-            color = (251, 128, 191)  # pink
-        if (y == 6):
-            color = (250, 1, 0)      # red
-        if (y == 5):
-            color = (249, 131, 31)   # orange
-        if (y == 4):
-            color = (248, 223, 8)    # yellow
-        if (y == 3):
-            color = (2, 162, 4)      # green
-        if (y == 2):
-            color = (0, 196, 173)    # turquoise
-        if (y == 1):
-            color = (0, 65, 183)     # blue
-        if (y == 0):
-            color = (131, 32, 158)   # purple
+        color = RAINBOW_COLORS.get(y, color)
 
-    pixels[i] = color
+    pixels[pixel_index] = color
 
 
-def clear_display(pixels, config):
-    """Clear all LEDs"""
+def clear_display(pixels, config: dict) -> None:
+    """
+    Clear all LEDs by setting them to off.
+
+    Args:
+        pixels: NeoPixel strip object
+        config: LED configuration dictionary containing 'led_count'
+
+    Returns:
+        None
+    """
     for i in range(config['led_count']):
-        pixels[i] = color_off
+        pixels[i] = COLOR_OFF
     pixels.show()
 
 
-def dosap(pixels, color=color_blue, rainbow=False):
+def dosap(
+    pixels,
+    color: Tuple[int, int, int] = COLOR_BLUE,
+    rainbow: bool = False
+) -> None:
     """
-    Draw SAP logo on LED matrix (Y-flipped to match IBM orientation).
+    Draw the SAP logo on the LED matrix.
+
+    This function renders the three letters "S", "A", and "P" on the LED
+    matrix using the specified color or rainbow gradient. The logo is
+    Y-flipped to match the IBM Quantum LED orientation.
 
     Args:
-        pixels: NeoPixel strip object
-        color: Color to use for the text
-        rainbow: If True, use rainbow gradient
+        pixels: NeoPixel strip object to control LEDs
+        color: RGB color tuple for the logo (default: blue)
+        rainbow: If True, use rainbow gradient instead of solid color
+
+    Returns:
+        None
+
+    Note:
+        The logo occupies approximately:
+        - Letter S: columns 0-5
+        - Letter A: columns 8-13
+        - Letter P: columns 16-21
+        - All letters span rows 0-7 (full height)
     """
     # Letter "S" (Y-flipped: y=7-y, x stays same)
     plotcalc(7, 0, color, pixels, rainbow)
@@ -159,8 +225,19 @@ def dosap(pixels, color=color_blue, rainbow=False):
     plotcalc(0, 17, color, pixels, rainbow)
 
 
-def main():
-    """Main demo function with joystick control."""
+def main() -> int:
+    """
+    Main demo function with joystick control.
+
+    This function initializes the LED matrix, detects available input methods
+    (joystick or auto-cycle), and runs the interactive demo loop.
+
+    Returns:
+        int: Exit code (0 for success, 1 for error)
+
+    Raises:
+        KeyboardInterrupt: When user presses Ctrl+C to exit
+    """
     print("=" * 70)
     print("SAP LED Demo - Integrated Version")
     print("=" * 70)
@@ -209,8 +286,8 @@ def main():
     print("Starting demo...")
     print()
 
-    # Current color
-    current_color = color_blue
+    # Current state
+    current_color = COLOR_BLUE
     current_rainbow = False
 
     try:
@@ -230,28 +307,28 @@ def main():
 
                         if event.direction == "up":
                             print("UP - Blue SAP")
-                            current_color = color_blue
+                            current_color = COLOR_BLUE
                             current_rainbow = False
                             dosap(pixels, current_color, current_rainbow)
                         elif event.direction == "down":
                             print("DOWN - Red SAP")
-                            current_color = color_red
+                            current_color = COLOR_RED
                             current_rainbow = False
                             dosap(pixels, current_color, current_rainbow)
                         elif event.direction == "left":
                             print("LEFT - Green SAP")
-                            current_color = color_green
+                            current_color = COLOR_GREEN
                             current_rainbow = False
                             dosap(pixels, current_color, current_rainbow)
                         elif event.direction == "right":
                             print("RIGHT - Yellow SAP")
-                            current_color = color_yellow
+                            current_color = COLOR_YELLOW
                             current_rainbow = False
                             dosap(pixels, current_color, current_rainbow)
                         elif event.direction == "middle":
                             print("PUSH - Rainbow SAP")
                             current_rainbow = True
-                            dosap(pixels, color_blue, current_rainbow)
+                            dosap(pixels, COLOR_BLUE, current_rainbow)
 
                         pixels.show()
 
@@ -260,11 +337,11 @@ def main():
             # Auto-cycle mode (no joystick)
             print("Auto-cycling through colors...")
             colors = [
-                ("Blue", color_blue, False),
-                ("Rainbow", color_blue, True),
-                ("Red", color_red, False),
-                ("Green", color_green, False),
-                ("Yellow", color_yellow, False),
+                ("Blue", COLOR_BLUE, False),
+                ("Rainbow", COLOR_BLUE, True),
+                ("Red", COLOR_RED, False),
+                ("Green", COLOR_GREEN, False),
+                ("Yellow", COLOR_YELLOW, False),
             ]
             idx = 0
 
