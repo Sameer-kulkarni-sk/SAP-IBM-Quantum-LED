@@ -41,6 +41,11 @@ readonly RASQBERRY_HOST="${RASQBERRY_USER}@${RASQBERRY_IP}"
 readonly RASQBERRY_HOME="/home/${RASQBERRY_USER}"
 readonly VENV_PATH="${RASQBERRY_HOME}/RasQberry-Two/venv/RQB2"
 
+# SSH connection multiplexing to avoid multiple password prompts
+readonly SSH_CONTROL_PATH="/tmp/ssh-rasqberry-deploy-$$"
+readonly SSH_OPTS="-o ControlMaster=auto -o ControlPath=${SSH_CONTROL_PATH} -o ControlPersist=300"
+readonly SCP_OPTS="-o ControlMaster=auto -o ControlPath=${SSH_CONTROL_PATH} -o ControlPersist=300"
+
 # Function to print colored messages
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -75,6 +80,17 @@ if [ -z "$RASQBERRY_IP" ]; then
     exit 1
 fi
 
+# Cleanup function for SSH control socket
+cleanup_ssh() {
+    if [ -S "${SSH_CONTROL_PATH}" ]; then
+        ssh ${SSH_OPTS} -O exit "${RASQBERRY_HOST}" 2>/dev/null || true
+        rm -f "${SSH_CONTROL_PATH}"
+    fi
+}
+
+# Set trap to cleanup on exit
+trap cleanup_ssh EXIT INT TERM
+
 echo ""
 echo "=========================================="
 echo "  SAP LED Demo Deployment to RasQberry"
@@ -83,54 +99,54 @@ echo ""
 print_info "Target: ${RASQBERRY_HOST}"
 echo ""
 
-# Step 1: Test connection
-print_info "Step 1/7: Testing connection to RasQberry..."
-ssh -o ConnectTimeout=5 "${RASQBERRY_HOST}" "echo 'Connection successful'" > /dev/null 2>&1
-check_status "Connection established" "Cannot connect to ${RASQBERRY_HOST}"
+# Step 1: Test connection and establish master connection
+print_info "Step 1/8: Testing connection and establishing SSH session..."
+ssh ${SSH_OPTS} -o ConnectTimeout=5 "${RASQBERRY_HOST}" "echo 'Connection successful'" > /dev/null 2>&1
+check_status "Connection established (password required only once)" "Cannot connect to ${RASQBERRY_HOST}"
 
 # Step 2: Backup existing files
 print_info "Step 2/8: Creating backups..."
-ssh "${RASQBERRY_HOST}" "cp ${RASQBERRY_HOME}/led_sap_demo.py ${RASQBERRY_HOME}/led_sap_demo.py.backup 2>/dev/null || true"
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "cp ${RASQBERRY_HOME}/led_sap_demo.py ${RASQBERRY_HOME}/led_sap_demo.py.backup 2>/dev/null || true"
 print_success "Backups created (if files existed)"
 
 # Step 3: Deploy main demo
 print_info "Step 3/8: Deploying main demo script..."
-scp src/sap_led_demo.py "${RASQBERRY_HOST}:${RASQBERRY_HOME}/led_sap_demo.py"
+scp ${SCP_OPTS} src/sap_led_demo.py "${RASQBERRY_HOST}:${RASQBERRY_HOME}/led_sap_demo.py"
 check_status "Main demo deployed" "Failed to deploy main demo"
 
-ssh "${RASQBERRY_HOST}" "chmod +x ${RASQBERRY_HOME}/led_sap_demo.py"
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "chmod +x ${RASQBERRY_HOME}/led_sap_demo.py"
 
 # Step 4: Deploy launcher script
 print_info "Step 4/8: Deploying launcher script..."
-scp scripts/rq_led_sap_demo.sh "${RASQBERRY_HOST}:/tmp/"
-ssh "${RASQBERRY_HOST}" "sudo cp /tmp/rq_led_sap_demo.sh /usr/bin/ && sudo chmod +x /usr/bin/rq_led_sap_demo.sh"
+scp ${SCP_OPTS} scripts/rq_led_sap_demo.sh "${RASQBERRY_HOST}:/tmp/"
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "sudo cp /tmp/rq_led_sap_demo.sh /usr/bin/ && sudo chmod +x /usr/bin/rq_led_sap_demo.sh"
 check_status "Launcher script deployed" "Failed to deploy launcher script"
 
 # Step 5: Deploy custom icon (if available)
 print_info "Step 5/8: Checking for custom SAP icon..."
 if [ -f "desktop/icons/sap-logo.png" ]; then
     print_info "Custom SAP icon found, deploying..."
-    scp desktop/icons/sap-logo.png "${RASQBERRY_HOST}:/tmp/"
-    ssh "${RASQBERRY_HOST}" "sudo cp /tmp/sap-logo.png /usr/share/pixmaps/sap-logo.png && sudo chmod 644 /usr/share/pixmaps/sap-logo.png"
+    scp ${SCP_OPTS} desktop/icons/sap-logo.png "${RASQBERRY_HOST}:/tmp/"
+    ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "sudo cp /tmp/sap-logo.png /usr/share/pixmaps/sap-logo.png && sudo chmod 644 /usr/share/pixmaps/sap-logo.png"
     check_status "Custom SAP icon deployed" "Failed to deploy custom icon"
 else
     print_warning "No custom icon found at desktop/icons/sap-logo.png"
     print_info "Using default RasQberry icon as fallback"
     # Create a fallback by copying rasqberry icon
-    ssh "${RASQBERRY_HOST}" "sudo cp /usr/share/pixmaps/rasqberry.png /usr/share/pixmaps/sap-logo.png 2>/dev/null || true"
+    ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "sudo cp /usr/share/pixmaps/rasqberry.png /usr/share/pixmaps/sap-logo.png 2>/dev/null || true"
 fi
 
 # Step 6: Deploy desktop icon
 print_info "Step 6/8: Installing desktop icon..."
-scp desktop/sap-led-demo.desktop "${RASQBERRY_HOST}:/tmp/"
-scp scripts/install_desktop_icon.sh "${RASQBERRY_HOST}:/tmp/"
-ssh "${RASQBERRY_HOST}" "cd /tmp && chmod +x install_desktop_icon.sh && sudo ./install_desktop_icon.sh"
+scp ${SCP_OPTS} desktop/sap-led-demo.desktop "${RASQBERRY_HOST}:/tmp/"
+scp ${SCP_OPTS} scripts/install_desktop_icon.sh "${RASQBERRY_HOST}:/tmp/"
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "cd /tmp && chmod +x install_desktop_icon.sh && sudo ./install_desktop_icon.sh"
 check_status "Desktop icon installed" "Failed to install desktop icon"
 
 # Step 7: Deploy quantum version (optional)
 print_info "Step 7/8: Deploying quantum version..."
-scp src/sap_quantum_led_demo.py "${RASQBERRY_HOST}:${RASQBERRY_HOME}/"
-ssh "${RASQBERRY_HOST}" "chmod +x ${RASQBERRY_HOME}/sap_quantum_led_demo.py"
+scp ${SCP_OPTS} src/sap_quantum_led_demo.py "${RASQBERRY_HOST}:${RASQBERRY_HOME}/"
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "chmod +x ${RASQBERRY_HOME}/sap_quantum_led_demo.py"
 print_success "Quantum version deployed"
 
 # Step 8: Verify deployment
@@ -139,15 +155,15 @@ echo ""
 
 # Check files exist
 print_info "Checking deployed files..."
-ssh "${RASQBERRY_HOST}" "test -f ${RASQBERRY_HOME}/led_sap_demo.py" && print_success "✓ Main demo script" || print_error "✗ Main demo script missing"
-ssh "${RASQBERRY_HOST}" "test -f /usr/bin/rq_led_sap_demo.sh" && print_success "✓ Launcher script" || print_error "✗ Launcher script missing"
-ssh "${RASQBERRY_HOST}" "test -f ${RASQBERRY_HOME}/Desktop/sap-led-demo.desktop" && print_success "✓ Desktop icon file" || print_warning "⚠ Desktop icon missing"
-ssh "${RASQBERRY_HOST}" "test -f /usr/share/pixmaps/sap-logo.png" && print_success "✓ SAP logo icon" || print_warning "⚠ SAP logo missing"
-ssh "${RASQBERRY_HOST}" "test -f ${RASQBERRY_HOME}/sap_quantum_led_demo.py" && print_success "✓ Quantum version" || print_warning "⚠ Quantum version missing"
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "test -f ${RASQBERRY_HOME}/led_sap_demo.py" && print_success "✓ Main demo script" || print_error "✗ Main demo script missing"
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "test -f /usr/bin/rq_led_sap_demo.sh" && print_success "✓ Launcher script" || print_error "✗ Launcher script missing"
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "test -f ${RASQBERRY_HOME}/Desktop/sap-led-demo.desktop" && print_success "✓ Desktop icon file" || print_warning "⚠ Desktop icon missing"
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "test -f /usr/share/pixmaps/sap-logo.png" && print_success "✓ SAP logo icon" || print_warning "⚠ SAP logo missing"
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "test -f ${RASQBERRY_HOME}/sap_quantum_led_demo.py" && print_success "✓ Quantum version" || print_warning "⚠ Quantum version missing"
 
 echo ""
 print_info "Checking Python syntax..."
-ssh "${RASQBERRY_HOST}" "${VENV_PATH}/bin/python3 -m py_compile ${RASQBERRY_HOME}/led_sap_demo.py" 2>/dev/null
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "${VENV_PATH}/bin/python3 -m py_compile ${RASQBERRY_HOME}/led_sap_demo.py" 2>/dev/null
 check_status "✓ Python syntax valid" "✗ Python syntax error"
 
 echo ""
@@ -175,6 +191,8 @@ echo "  sudo /usr/bin/rq_led_sap_demo.sh"
 echo ""
 echo "Rollback (if needed):"
 echo "  ssh ${RASQBERRY_HOST} 'cp ${RASQBERRY_HOME}/led_sap_demo.py.backup ${RASQBERRY_HOME}/led_sap_demo.py'"
+echo ""
+print_success "SSH connection multiplexing used - you only needed to enter password once!"
 echo ""
 print_warning "Note: You may need to apply virtual display patches for correct text orientation"
 echo "See docs/DEPLOYMENT_GUIDE.md for details"

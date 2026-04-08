@@ -13,8 +13,9 @@ A quantum-powered LED demonstration for RasQberry that displays "SAP" text on a 
 -  **Interactive Controls**: Joystick button controls for color changes
 -  **Multiple Colors**: Blue, Red, Green, Yellow, Rainbow, and more
 -  **Quantum Computing**: Optional Qiskit integration for quantum-powered color generation
--  **Virtual Display**: Synchronized virtual LED GUI for monitoring
+-  **Virtual Display**: Synchronized virtual LED GUI with automatic mapping fix
 -  **Auto-Cycle Mode**: Automatic color cycling when joystick unavailable
+-  **Easy Deployment**: One-command deployment with automatic patching
 
 
 ### Installation (Recommended)
@@ -26,7 +27,13 @@ cd SAP-IBM-Quantum-LED
 
 # Deploy everything with one command (includes custom SAP logo icon)
 ./scripts/deploy_to_rasqberry.sh YOUR_RASQBERRY_IP
+
+# If virtual display shows incorrect orientation, apply the fix:
+scp patches/patch_virtual_gui.py rasqberry@YOUR_IP:/tmp/
+ssh rasqberry@YOUR_IP "sudo python3 /tmp/patch_virtual_gui.py"
 ```
+
+**Note**: The virtual display patch ensures the virtual LED GUI matches the physical LED mapping exactly. This is needed because the virtual GUI uses a different coordinate system by default.
 
 ### Example Quantum Circuit
 

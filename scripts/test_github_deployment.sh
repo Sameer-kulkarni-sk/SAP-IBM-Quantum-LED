@@ -30,8 +30,13 @@ set -u  # Exit on undefined variable
 # Configuration - can be overridden by environment variables
 readonly RASQBERRY_IP="${1:-}"
 readonly RASQBERRY_USER="${RASQBERRY_USER:-rasqberry}"
+readonly RASQBERRY_HOST="${RASQBERRY_USER}@${RASQBERRY_IP}"
 readonly GITHUB_REPO="${GITHUB_REPO:-https://github.com/Sameer-kulkarni-sk/SAP-IBM-Quantum-LED.git}"
 readonly TEST_DIR="/tmp/sap-led-test-$$"
+
+# SSH connection multiplexing to avoid multiple password prompts
+readonly SSH_CONTROL_PATH="/tmp/ssh-rasqberry-test-$$"
+readonly SSH_OPTS="-o ControlMaster=auto -o ControlPath=${SSH_CONTROL_PATH} -o ControlPersist=300"
 
 # Validate IP address provided
 if [ -z "${RASQBERRY_IP}" ]; then
@@ -45,7 +50,7 @@ echo "=========================================="
 echo "  GitHub to RasQberry Deployment Test"
 echo "=========================================="
 echo ""
-echo "Target: ${RASQBERRY_USER}@${RASQBERRY_IP}"
+echo "Target: ${RASQBERRY_HOST}"
 echo "Repository: ${GITHUB_REPO}"
 echo "Test Directory: ${TEST_DIR}"
 echo ""
@@ -73,10 +78,21 @@ info() {
     echo -e "ℹ️  $1"
 }
 
-# Step 1: Test SSH connectivity
-echo "Step 1: Testing SSH connectivity..."
-if ssh -o ConnectTimeout=5 ${RASQBERRY_USER}@${RASQBERRY_IP} "echo 'SSH OK'" > /dev/null 2>&1; then
-    success "SSH connection successful"
+# Cleanup function for SSH control socket
+cleanup_ssh() {
+    if [ -S "${SSH_CONTROL_PATH}" ]; then
+        ssh ${SSH_OPTS} -O exit "${RASQBERRY_HOST}" 2>/dev/null || true
+        rm -f "${SSH_CONTROL_PATH}"
+    fi
+}
+
+# Set trap to cleanup on exit
+trap cleanup_ssh EXIT INT TERM
+
+# Step 1: Test SSH connectivity and establish master connection
+echo "Step 1: Testing SSH connectivity and establishing connection..."
+if ssh ${SSH_OPTS} -o ConnectTimeout=5 "${RASQBERRY_HOST}" "echo 'SSH OK'" > /dev/null 2>&1; then
+    success "SSH connection established (password required only once)"
 else
     error "Cannot connect to RasQberry via SSH"
 fi
@@ -84,7 +100,7 @@ fi
 # Step 2: Backup existing files on RasQberry
 echo ""
 echo "Step 2: Backing up existing files on RasQberry..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     if [ -f /home/rasqberry/led_sap_demo.py ]; then
         cp /home/rasqberry/led_sap_demo.py /home/rasqberry/led_sap_demo.py.test_backup
         echo 'Backed up led_sap_demo.py'
@@ -99,7 +115,7 @@ success "Existing files backed up"
 # Step 3: Clone repository on RasQberry
 echo ""
 echo "Step 3: Cloning repository from GitHub to RasQberry..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     rm -rf ${TEST_DIR}
     git clone ${GITHUB_REPO} ${TEST_DIR}
     cd ${TEST_DIR}
@@ -111,7 +127,7 @@ success "Repository cloned successfully"
 # Step 4: Verify repository structure
 echo ""
 echo "Step 4: Verifying repository structure..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     cd ${TEST_DIR}
     
     # Check required files
@@ -143,7 +159,7 @@ success "Repository structure verified"
 # Step 5: Deploy main demo
 echo ""
 echo "Step 5: Deploying main SAP LED demo..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     cd ${TEST_DIR}
     cp src/sap_led_demo.py /home/rasqberry/led_sap_demo.py
     chmod +x /home/rasqberry/led_sap_demo.py
@@ -154,7 +170,7 @@ success "Main demo deployed"
 # Step 6: Deploy launcher script
 echo ""
 echo "Step 6: Deploying launcher script..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     cd ${TEST_DIR}
     sudo cp scripts/rq_led_sap_demo.sh /usr/bin/
     sudo chmod +x /usr/bin/rq_led_sap_demo.sh
@@ -165,7 +181,7 @@ success "Launcher script deployed"
 # Step 7: Verify IBM demo is untouched
 echo ""
 echo "Step 7: Verifying IBM demo is untouched..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     test -f /usr/bin/rq_led_ibm_demo.sh || exit 1
     test -f /usr/bin/neopixel_spi_IBMtestFunc.py || exit 1
     echo 'IBM demo files intact'
@@ -175,7 +191,7 @@ success "IBM demo files verified intact"
 # Step 8: Verify system configuration is untouched
 echo ""
 echo "Step 8: Verifying system configuration..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     test -f /usr/config/rasqberry_environment.env || exit 1
     grep -q 'LED_MATRIX_WIDTH=24' /usr/config/rasqberry_environment.env || exit 1
     grep -q 'LED_MATRIX_HEIGHT=8' /usr/config/rasqberry_environment.env || exit 1
@@ -186,7 +202,7 @@ success "System configuration verified"
 # Step 9: Test Python syntax
 echo ""
 echo "Step 9: Testing Python syntax..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     /home/rasqberry/RasQberry-Two/venv/RQB2/bin/python3 -m py_compile /home/rasqberry/led_sap_demo.py
     echo 'Python syntax valid'
 "
@@ -195,7 +211,7 @@ success "Python syntax validated"
 # Step 10: Test demo can be imported
 echo ""
 echo "Step 10: Testing demo imports..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     cd /home/rasqberry
     PYTHONPATH=/usr/bin /home/rasqberry/RasQberry-Two/venv/RQB2/bin/python3 -c 'import sys; sys.path.insert(0, \"/usr/bin\"); import rq_led_utils; print(\"Imports OK\")'
 "
@@ -204,7 +220,7 @@ success "Demo imports validated"
 # Step 11: Verify launcher script works
 echo ""
 echo "Step 11: Verifying launcher script..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     test -x /usr/bin/rq_led_sap_demo.sh || exit 1
     grep -q 'led_sap_demo.py' /usr/bin/rq_led_sap_demo.sh || exit 1
     echo 'Launcher script valid'
@@ -214,7 +230,7 @@ success "Launcher script verified"
 # Step 12: Test that IBM demo still works (syntax check)
 echo ""
 echo "Step 12: Verifying IBM demo still functional..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     test -x /usr/bin/rq_led_ibm_demo.sh || exit 1
     echo 'IBM demo launcher intact'
 "
@@ -223,7 +239,7 @@ success "IBM demo verified functional"
 # Step 13: Check virtual display compatibility
 echo ""
 echo "Step 13: Checking virtual display compatibility..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     test -f /usr/bin/rq_led_virtual_gui.py || exit 1
     /home/rasqberry/RasQberry-Two/venv/RQB2/bin/python3 -m py_compile /usr/bin/rq_led_virtual_gui.py
     echo 'Virtual display compatible'
@@ -233,7 +249,7 @@ success "Virtual display verified"
 # Step 14: Verify no config files were modified
 echo ""
 echo "Step 14: Verifying no unauthorized modifications..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     # Check that config file wasn't modified by deployment
     if [ -f /usr/config/rasqberry_environment.env.test_backup ]; then
         diff /usr/config/rasqberry_environment.env /usr/config/rasqberry_environment.env.test_backup > /dev/null 2>&1 || {
@@ -248,7 +264,7 @@ success "No unauthorized modifications detected"
 # Step 15: Test rollback capability
 echo ""
 echo "Step 15: Testing rollback capability..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     test -f /home/rasqberry/led_sap_demo.py.test_backup || {
         echo 'Backup file exists'
         exit 0
@@ -263,7 +279,7 @@ success "Rollback capability verified"
 # Step 16: Cleanup test directory
 echo ""
 echo "Step 16: Cleaning up test directory..."
-ssh ${RASQBERRY_USER}@${RASQBERRY_IP} "
+ssh ${SSH_OPTS} "${RASQBERRY_HOST}" "
     rm -rf ${TEST_DIR}
     echo 'Test directory cleaned up'
 "
@@ -293,10 +309,12 @@ echo ""
 echo "🎉 GitHub to RasQberry deployment is SAFE and WORKING!"
 echo ""
 echo "To run the SAP demo on RasQberry:"
-echo "  ssh ${RASQBERRY_USER}@${RASQBERRY_IP}"
+echo "  ssh ${RASQBERRY_HOST}"
 echo "  sudo /usr/bin/rq_led_sap_demo.sh"
 echo ""
 echo "To restore backups (if needed):"
-echo "  ssh ${RASQBERRY_USER}@${RASQBERRY_IP}"
+echo "  ssh ${RASQBERRY_HOST}"
 echo "  cp /home/${RASQBERRY_USER}/led_sap_demo.py.test_backup /home/${RASQBERRY_USER}/led_sap_demo.py"
+echo ""
+echo "Note: SSH connection multiplexing was used - you only needed to enter password once!"
 echo ""

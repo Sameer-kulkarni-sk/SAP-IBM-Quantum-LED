@@ -51,6 +51,25 @@ ssh rasqberry@YOUR_IP "sudo rm /usr/bin/rq_led_sap_demo.sh"
 
 ---
 
+## Virtual Display Fix
+
+If the virtual LED display shows "SAP" incorrectly (upside down or mirrored), apply the virtual GUI patch:
+
+```bash
+# Transfer and apply the patch
+scp patches/patch_virtual_gui.py rasqberry@YOUR_IP:/tmp/
+ssh rasqberry@YOUR_IP "sudo python3 /tmp/patch_virtual_gui.py"
+```
+
+This patches `/usr/bin/rq_led_virtual_gui.py` to match the physical LED mapping exactly.
+
+**Note**: The patch is automatically applied if you use the deployment script with the `--fix-virtual-display` flag:
+```bash
+./scripts/deploy_to_rasqberry.sh YOUR_IP --fix-virtual-display
+```
+
+---
+
 ## Troubleshooting
 
 ### Issue: SAP demo doesn't start
