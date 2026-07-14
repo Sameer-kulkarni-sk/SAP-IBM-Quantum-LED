@@ -1,0 +1,25 @@
+{
+  "id": "sap-quantum-led",
+  "name": "SAP Quantum LED",
+  "category": "led-demo",
+  "description": "SAP logo and quantum-random color patterns on the RasQberry LED matrix",
+  "keywords": ["sap", "led", "quantum", "randomness", "matrix"],
+  "entrypoint": {
+    "type": "python",
+    "script": "sap_quantum_led.py",
+    "working_dir": "sap-quantum-led"
+  },
+  "install": {
+    "preinstalled": false,
+    "repo_url": "https://github.com/Sameer-kulkarni-sk/sap-quantum-led.git",
+    "marker_file": "sap_quantum_led.py"
+  },
+  "needs_hw": { "leds": true, "display": "none", "network": false },
+  "needs_ibm_token": "none",
+  "browser_based": false,
+  "loop_ok": true,
+  "timeout": 0,
+  "icon": { "type": "system", "path": "preferences-desktop-display" },
+  "menu": { "show": true, "order": 72 },
+  "desktop": { "show": true, "terminal": true }
+}
